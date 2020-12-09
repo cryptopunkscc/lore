@@ -1,4 +1,4 @@
-module gg
+module lore
 
 go 1.15
 
