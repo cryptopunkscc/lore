@@ -2,7 +2,7 @@ package storage
 
 import (
 	"fmt"
-	"gg/lore/id"
+	"github.com/cryptopunkscc/lore/lore/id"
 	"gorm.io/gorm"
 	"log"
 	"os"

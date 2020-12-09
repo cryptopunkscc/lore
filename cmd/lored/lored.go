@@ -1,7 +1,7 @@
 package main
 
 import (
-	"gg/node"
+	"github.com/cryptopunkscc/lore/node"
 	"log"
 )
 

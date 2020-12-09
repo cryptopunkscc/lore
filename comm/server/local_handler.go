@@ -1,8 +1,8 @@
 package server
 
 import (
-	"gg/lore/storage"
-	"gg/node/swarm"
+	"github.com/cryptopunkscc/lore/lore/storage"
+	"github.com/cryptopunkscc/lore/node/swarm"
 	"log"
 )
 

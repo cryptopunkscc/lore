@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"gg/lore/id"
+	"github.com/cryptopunkscc/lore/lore/id"
 	"io/ioutil"
 	"os"
 	"path/filepath"

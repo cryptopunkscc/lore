@@ -1,8 +1,8 @@
 package server
 
 import (
-	"gg/comm/proto"
-	"gg/lore/storage"
+	"github.com/cryptopunkscc/lore/comm/proto"
+	"github.com/cryptopunkscc/lore/lore/storage"
 	"log"
 )
 

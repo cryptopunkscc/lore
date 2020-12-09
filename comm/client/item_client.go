@@ -2,7 +2,7 @@ package client
 
 import (
 	"errors"
-	"gg/comm/proto"
+	"github.com/cryptopunkscc/lore/comm/proto"
 )
 
 type ItemClient struct {

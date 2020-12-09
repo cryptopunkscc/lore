@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"gg/comm/client"
+	"github.com/cryptopunkscc/lore/comm/client"
 	"io"
 	"log"
 	"os"

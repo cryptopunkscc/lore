@@ -1,7 +1,7 @@
 package swarm
 
 import (
-	"gg/comm/client"
+	"github.com/cryptopunkscc/lore/comm/client"
 )
 
 type Swarm struct {

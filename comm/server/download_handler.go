@@ -1,7 +1,7 @@
 package server
 
 import (
-	"gg/lore/storage"
+	"github.com/cryptopunkscc/lore/lore/storage"
 	"log"
 )
 
