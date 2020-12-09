@@ -1,4 +1,4 @@
-module lore
+module github.com/cryptopunkscc/lore
 
 go 1.15
 

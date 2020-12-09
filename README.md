@@ -15,8 +15,11 @@ Go is required to build it, ffplay is required to play media.
 
 ### Download and install
 
-    $ go get github.com/cryptopunks/lore
+    $ go get github.com/cryptopunkscc/lore
+    $ cd $GOPATH/src/github.com/cryptopunkscc/lore
     $ make install
+
+This will use `go install` to install two binaries - `lored` and `lore-cli`.
 
 ## Usage
 
