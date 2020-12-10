@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 )
 
 const adminURL = "http://localhost:10768/"
@@ -16,10 +17,18 @@ type App struct {
 }
 
 func (app *App) Add(path string) {
-	id, err := app.client.Admin().Add(path)
+	var err error
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	id, err := app.client.Admin().Add(absPath)
 	if err != nil {
 		log.Fatalln("error adding file:", err)
 	}
+
 	log.Println("added file:", id)
 }
 
