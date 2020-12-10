@@ -16,6 +16,7 @@ type App struct {
 	client *client.Client
 }
 
+// Add adds a local file to shared files
 func (app *App) Add(path string) {
 	var err error
 
@@ -32,6 +33,7 @@ func (app *App) Add(path string) {
 	log.Println("added file:", id)
 }
 
+// List show a list of all shared files
 func (app *App) List() {
 	list, err := app.client.Admin().List()
 	if err != nil {
@@ -42,6 +44,7 @@ func (app *App) List() {
 	}
 }
 
+// AddSource adds an address to the sources list
 func (app *App) AddSource(address string) {
 	err := app.client.Admin().AddSource(address)
 	if err != nil {
@@ -51,6 +54,7 @@ func (app *App) AddSource(address string) {
 	log.Println("source added")
 }
 
+// RemoveSource removes an address from the sources list
 func (app *App) RemoveSource(address string) {
 	err := app.client.Admin().RemoveSource(address)
 	if err != nil {
@@ -60,6 +64,7 @@ func (app *App) RemoveSource(address string) {
 	log.Println("source removed")
 }
 
+// ListSources fetches the sources list
 func (app *App) ListSources() {
 	list, err := app.client.Admin().ListSources()
 	if err != nil {
@@ -71,6 +76,7 @@ func (app *App) ListSources() {
 	}
 }
 
+// Play searches for a file and plays it locally using ffplay
 func (app *App) Play(id string) {
 	stream, err := app.client.Local().Stream(id)
 	if err != nil {
@@ -93,6 +99,7 @@ func (app *App) Play(id string) {
 	_ = cmd.Wait()
 }
 
+// Run executes the command provided by the user
 func (app *App) Run(args []string) {
 	cmd := args[0]
 
