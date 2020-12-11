@@ -3,6 +3,7 @@ package storage
 import (
 	"fmt"
 	"github.com/cryptopunkscc/lore/id"
+	"github.com/cryptopunkscc/lore/storage/index"
 	"github.com/cryptopunkscc/lore/story"
 	"gorm.io/gorm"
 	"log"
@@ -19,7 +20,7 @@ type LocalStorage struct {
 	rootDir      string
 	locationRepo LocationRepo
 	storyRepo    story.StoryRepo
-	storyIndex   *StoryIndex
+	storyIndex   *index.StoryIndex
 }
 
 const defaultAppDir = ".lore"
@@ -38,7 +39,7 @@ func NewLocalStorage(db *gorm.DB) (*LocalStorage, error) {
 		return nil, err
 	}
 
-	s.storyIndex = &StoryIndex{s.storyRepo}
+	s.storyIndex = index.NewStoryIndex(db)
 
 	_ = os.MkdirAll(s.dataDir(), 0700)
 	return s, nil
