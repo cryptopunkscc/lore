@@ -3,8 +3,8 @@ package node
 import (
 	"fmt"
 	"github.com/cryptopunkscc/lore/comm/server"
-	"github.com/cryptopunkscc/lore/lore/storage"
 	"github.com/cryptopunkscc/lore/node/swarm"
+	"github.com/cryptopunkscc/lore/storage"
 	"github.com/cryptopunkscc/lore/story"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"

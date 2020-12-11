@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"github.com/cryptopunkscc/lore/lore/id"
+	"github.com/cryptopunkscc/lore/id"
 	"path/filepath"
 	"time"
 )
