@@ -3,6 +3,7 @@ package storage
 import (
 	"fmt"
 	"github.com/cryptopunkscc/lore/id"
+	"github.com/cryptopunkscc/lore/story"
 	"gorm.io/gorm"
 	"log"
 	"os"
@@ -17,23 +18,35 @@ var _ Storage = &LocalStorage{}
 type LocalStorage struct {
 	rootDir      string
 	locationRepo LocationRepo
+	storyRepo    story.StoryRepo
+	storyIndex   *StoryIndex
 }
 
 const defaultAppDir = ".lore"
 
 // NewLocalStorage returns a new instance of LocalStorage. db is used for storing metadata about local files.
 func NewLocalStorage(db *gorm.DB) (*LocalStorage, error) {
+	var err error
+
 	s := &LocalStorage{
 		locationRepo: newLocationDbRepo(db),
 		rootDir:      defaultRootDir(),
 	}
+
+	s.storyRepo, err = story.NewStoryRepoGorm(db)
+	if err != nil {
+		return nil, err
+	}
+
+	s.storyIndex = &StoryIndex{s.storyRepo}
+
 	_ = os.MkdirAll(s.dataDir(), 0700)
 	return s, nil
 }
 
 // Create returns a writer that writes to local storage
 func (s *LocalStorage) Create() (Writer, error) {
-	return NewLocalStorageWriter(s.dataDir(), nil, s.locationRepo)
+	return NewLocalStorageWriter(s.dataDir(), nil, s.locationRepo, s.storyIndex)
 }
 
 // Delete all files with given ID from local storage
@@ -133,6 +146,8 @@ func (s *LocalStorage) Add(path string) (Location, error) {
 	if err != nil {
 		return Location{}, err
 	}
+
+	_ = s.storyIndex.IndexFile(path)
 
 	return loc, nil
 }

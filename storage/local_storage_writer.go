@@ -10,17 +10,20 @@ type LocalStorageWriter struct {
 	writer       Writer
 	dir          string
 	locationRepo LocationRepo
+	storyIndex   *StoryIndex
 }
 
-func NewLocalStorageWriter(dir string, resolver id.Resolver, locRepo LocationRepo) (*LocalStorageWriter, error) {
+func NewLocalStorageWriter(dir string, resolver id.Resolver, locRepo LocationRepo, storyIndex *StoryIndex) (*LocalStorageWriter, error) {
 	fw, err := NewFileWriter(dir, resolver)
 	if err != nil {
 		return nil, err
 	}
 
 	w := &LocalStorageWriter{
-		writer: fw,
-		dir:    dir,
+		writer:       fw,
+		dir:          dir,
+		locationRepo: locRepo,
+		storyIndex:   storyIndex,
 	}
 	return w, nil
 }
@@ -56,6 +59,8 @@ func (w *LocalStorageWriter) Finalize() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	_ = w.storyIndex.IndexFile(path)
 
 	return fileId, nil
 }
