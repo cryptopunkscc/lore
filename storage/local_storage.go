@@ -6,6 +6,7 @@ import (
 	"github.com/cryptopunkscc/lore/storage/index"
 	"github.com/cryptopunkscc/lore/story"
 	"gorm.io/gorm"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -183,6 +184,22 @@ func (s *LocalStorage) Path(id string) (string, error) {
 	}
 
 	return "", ErrFileNotFound
+}
+
+func (s *LocalStorage) Search(query string) []string {
+	var res = make([]string, 0)
+	matches, _ := s.storyIndex.QueryType("core.fileinfo", query)
+
+	for _, m := range matches {
+		r, _ := s.Open(m)
+		data, _ := ioutil.ReadAll(r)
+		header, _ := story.ParseHeader(data)
+		for _, r := range header.Rel {
+			res = append(res, r)
+		}
+	}
+
+	return res
 }
 
 // dataDir returns the data directory path

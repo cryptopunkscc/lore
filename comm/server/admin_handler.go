@@ -25,9 +25,27 @@ func (admin *AdminHandler) Handle(req *Request) {
 		admin.AddSource(req)
 	case "removesource":
 		admin.RemoveSource(req)
+	case "search":
+		admin.Search(req)
 	default:
 		req.NotFound()
 	}
+}
+
+func (admin *AdminHandler) Search(req *Request) {
+	var err error
+	var request proto.AdminSearchRequest
+	var response proto.AdminSearchResponse
+
+	err = req.Unmarshal(&request)
+	if err != nil {
+		req.NotFound()
+		return
+	}
+
+	response.Matches = admin.storage.Search(request.Query)
+
+	_ = req.OK(&response)
 }
 
 func (admin *AdminHandler) Add(req *Request) {

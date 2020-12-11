@@ -88,3 +88,18 @@ func (admin *AdminClient) RemoveSource(address string) error {
 	}
 	return nil
 }
+
+func (admin *AdminClient) Search(query string) ([]string, error) {
+	var err error
+	var response proto.AdminSearchResponse
+
+	err = admin.api.Call(scopeAdmin, "search", &proto.AdminSearchRequest{Query: query}, &response)
+	if err != nil {
+		return nil, err
+	}
+	if response.Error != "" {
+		return nil, errors.New(response.Error)
+	}
+
+	return response.Matches, nil
+}

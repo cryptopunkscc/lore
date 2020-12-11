@@ -46,3 +46,13 @@ type AdminListSourcesRequest struct{}
 type AdminListSourcesResponse struct {
 	Sources []string
 }
+
+// admin/search - search files
+type AdminSearchRequest struct {
+	Query string
+}
+
+type AdminSearchResponse struct {
+	Matches []string
+	Error   string
+}

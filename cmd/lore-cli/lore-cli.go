@@ -44,6 +44,17 @@ func (app *App) List() {
 	}
 }
 
+// Search searches shared files by name
+func (app *App) Search(query string) {
+	list, err := app.client.Admin().Search(query)
+	if err != nil {
+		log.Fatalln("api error:", err)
+	}
+	for _, item := range list {
+		fmt.Println(item)
+	}
+}
+
 // AddSource adds an address to the sources list
 func (app *App) AddSource(address string) {
 	err := app.client.Admin().AddSource(address)
@@ -76,8 +87,8 @@ func (app *App) ListSources() {
 	}
 }
 
-// Play searches for a file and plays it locally using ffplay
-func (app *App) Play(id string) {
+// PlayByID searches for a file and plays it locally using ffplay
+func (app *App) PlayByID(id string) {
 	stream, err := app.client.Local().Stream(id)
 	if err != nil {
 		log.Fatalln("Error playing:", err)
@@ -99,6 +110,17 @@ func (app *App) Play(id string) {
 	_ = cmd.Wait()
 }
 
+// Play searches and plays all files matching name
+func (app *App) Play(name string) {
+	list, err := app.client.Admin().Search(name)
+	if err != nil {
+		log.Fatalln("api error:", err)
+	}
+	for _, i := range list {
+		app.PlayByID(i)
+	}
+}
+
 // Run executes the command provided by the user
 func (app *App) Run(args []string) {
 	cmd := args[0]
@@ -116,6 +138,8 @@ func (app *App) Run(args []string) {
 		app.List()
 	case "listsources":
 		app.ListSources()
+	case "search":
+		app.Search(os.Args[2])
 	default:
 		fmt.Println("unknown command")
 	}
