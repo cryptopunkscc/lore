@@ -10,7 +10,24 @@ type Resolver interface {
 	Resolve() string
 }
 
-var defaultResolver = NewID0Resolver()
+func defaultResolver() Resolver {
+	return NewID0Resolver()
+}
+
+func ResolveID(data []byte, resolver Resolver) (string, error) {
+	var err error
+
+	if resolver == nil {
+		resolver = defaultResolver()
+	}
+
+	_, err = resolver.Write(data)
+	if err != nil {
+		return "", err
+	}
+
+	return resolver.Resolve(), nil
+}
 
 func ResolveFileID(path string, resolver Resolver) (string, error) {
 	file, err := os.Open(path)
@@ -20,7 +37,7 @@ func ResolveFileID(path string, resolver Resolver) (string, error) {
 	defer file.Close()
 
 	if resolver == nil {
-		resolver = defaultResolver
+		resolver = defaultResolver()
 	}
 
 	_, err = io.Copy(resolver, file)
