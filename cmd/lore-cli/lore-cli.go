@@ -50,8 +50,8 @@ func (app *App) Search(query string) {
 	if err != nil {
 		log.Fatalln("api error:", err)
 	}
-	for _, item := range list {
-		fmt.Println(item)
+	for id, item := range list {
+		fmt.Println(id, item)
 	}
 }
 
@@ -116,8 +116,9 @@ func (app *App) Play(name string) {
 	if err != nil {
 		log.Fatalln("api error:", err)
 	}
-	for _, i := range list {
-		app.PlayByID(i)
+	for id, name := range list {
+		fmt.Println("Playing", name)
+		app.PlayByID(id)
 	}
 }
 

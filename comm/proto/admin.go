@@ -53,6 +53,6 @@ type AdminSearchRequest struct {
 }
 
 type AdminSearchResponse struct {
-	Matches []string
+	Matches map[string]string
 	Error   string
 }

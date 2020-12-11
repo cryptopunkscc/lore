@@ -4,10 +4,10 @@ import (
 	"gorm.io/gorm"
 )
 
-var _ StoryRepo = &StoryRepoGorm{}
+var _ HeaderRepo = &HeaderRepoGorm{}
 
-// StoryRepoGorm is a gorm implementation of StoryRepo
-type StoryRepoGorm struct {
+// HeaderRepoGorm is a gorm implementation of HeaderRepo
+type HeaderRepoGorm struct {
 	db *gorm.DB
 }
 
@@ -25,9 +25,9 @@ type dbStoryRel struct {
 
 func (dbStoryRel) TableName() string { return "story_rels" }
 
-func NewStoryRepoGorm(db *gorm.DB) (*StoryRepoGorm, error) {
+func NewHeaderRepoGorm(db *gorm.DB) (*HeaderRepoGorm, error) {
 	var err error
-	var repo = &StoryRepoGorm{db: db}
+	var repo = &HeaderRepoGorm{db: db}
 
 	err = repo.db.AutoMigrate(&dbStoryType{})
 	if err != nil {
@@ -42,7 +42,34 @@ func NewStoryRepoGorm(db *gorm.DB) (*StoryRepoGorm, error) {
 	return repo, nil
 }
 
-func (repo *StoryRepoGorm) SetStoryType(id string, typ string) error {
+func (repo *HeaderRepoGorm) Add(id string, header *Header) error {
+	var err error
+
+	err = repo.SetStoryType(id, header.Type)
+	if err != nil {
+		return err
+	}
+
+	return repo.SetStoryRels(id, header.Rel)
+}
+
+func (repo *HeaderRepoGorm) Remove(id string) error {
+	var err error
+
+	err = repo.db.Where("id = ?", id).Delete(&dbStoryRel{}).Error
+	if err != nil {
+		return err
+	}
+
+	err = repo.db.Where("id = ?", id).Delete(&dbStoryType{}).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *HeaderRepoGorm) SetStoryType(id string, typ string) error {
 	t := &dbStoryType{
 		ID:   id,
 		Type: typ,
@@ -51,13 +78,13 @@ func (repo *StoryRepoGorm) SetStoryType(id string, typ string) error {
 	return repo.db.Create(&t).Error
 }
 
-func (repo *StoryRepoGorm) GetStoryType(id string) (string, error) {
+func (repo *HeaderRepoGorm) GetStoryType(id string) (string, error) {
 	var t dbStoryType
 	err := repo.db.Where("id = ?", id).First(&t).Error
 	return t.ID, err
 }
 
-func (repo *StoryRepoGorm) SetStoryRels(id string, rels []string) error {
+func (repo *HeaderRepoGorm) SetStoryRels(id string, rels []string) error {
 	for _, r := range rels {
 		err := repo.db.Create(&dbStoryRel{
 			ID:  id,
@@ -70,7 +97,7 @@ func (repo *StoryRepoGorm) SetStoryRels(id string, rels []string) error {
 	return nil
 }
 
-func (repo *StoryRepoGorm) GetStoryRels(id string) ([]string, error) {
+func (repo *HeaderRepoGorm) GetStoryRels(id string) ([]string, error) {
 	var rels = make([]string, 0)
 
 	rows, err := repo.db.Where("id = ?", id).Find(&[]dbStoryRel{}).Rows()
@@ -88,20 +115,4 @@ func (repo *StoryRepoGorm) GetStoryRels(id string) ([]string, error) {
 		rels = append(rels, i.Rel)
 	}
 	return rels, nil
-}
-
-func (repo *StoryRepoGorm) Forget(id string) error {
-	var err error
-
-	err = repo.db.Where("id = ?", id).Delete(&dbStoryRel{}).Error
-	if err != nil {
-		return err
-	}
-
-	err = repo.db.Where("id = ?", id).Delete(&dbStoryType{}).Error
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

@@ -20,7 +20,7 @@ type Node struct {
 	localStorage *storage.LocalStorage
 	swarm        *swarm.Swarm
 	server       *server.Server
-	storyRepo    story.StoryRepo
+	storyRepo    story.HeaderRepo
 }
 
 func NewNode(config Config) (*Node, error) {
@@ -40,7 +40,7 @@ func NewNode(config Config) (*Node, error) {
 	}
 
 	// Set up story repo
-	node.storyRepo, err = story.NewStoryRepoGorm(node.db)
+	node.storyRepo, err = story.NewHeaderRepoGorm(node.db)
 	if err != nil {
 		return nil, err
 	}

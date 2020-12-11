@@ -2,7 +2,6 @@ package storage
 
 import (
 	"github.com/cryptopunkscc/lore/id"
-	"github.com/cryptopunkscc/lore/storage/index"
 	"path/filepath"
 	"time"
 )
@@ -11,10 +10,10 @@ type LocalStorageWriter struct {
 	writer       Writer
 	dir          string
 	locationRepo LocationRepo
-	storyIndex   *index.StoryIndex
+	storyIndex   *Index
 }
 
-func NewLocalStorageWriter(dir string, resolver id.Resolver, locRepo LocationRepo, storyIndex *index.StoryIndex) (*LocalStorageWriter, error) {
+func NewLocalStorageWriter(dir string, resolver id.Resolver, locRepo LocationRepo, storyIndex *Index) (*LocalStorageWriter, error) {
 	fw, err := NewFileWriter(dir, resolver)
 	if err != nil {
 		return nil, err
@@ -61,7 +60,7 @@ func (w *LocalStorageWriter) Finalize() (string, error) {
 		return "", err
 	}
 
-	_ = w.storyIndex.IndexFile(path)
+	_ = w.storyIndex.AddFile(path)
 
 	return fileId, nil
 }

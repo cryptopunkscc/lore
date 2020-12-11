@@ -3,13 +3,16 @@ package storage
 import (
 	"fmt"
 	"github.com/cryptopunkscc/lore/id"
-	"github.com/cryptopunkscc/lore/storage/index"
 	"github.com/cryptopunkscc/lore/story"
+	"github.com/cryptopunkscc/lore/story/core"
+	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -20,27 +23,19 @@ var _ Storage = &LocalStorage{}
 type LocalStorage struct {
 	rootDir      string
 	locationRepo LocationRepo
-	storyRepo    story.StoryRepo
-	storyIndex   *index.StoryIndex
+	index        *Index
 }
 
 const defaultAppDir = ".lore"
 
 // NewLocalStorage returns a new instance of LocalStorage. db is used for storing metadata about local files.
 func NewLocalStorage(db *gorm.DB) (*LocalStorage, error) {
-	var err error
-
 	s := &LocalStorage{
 		locationRepo: newLocationDbRepo(db),
 		rootDir:      defaultRootDir(),
 	}
 
-	s.storyRepo, err = story.NewStoryRepoGorm(db)
-	if err != nil {
-		return nil, err
-	}
-
-	s.storyIndex = index.NewStoryIndex(db)
+	s.index = NewIndex(db)
 
 	_ = os.MkdirAll(s.dataDir(), 0700)
 	return s, nil
@@ -48,7 +43,7 @@ func NewLocalStorage(db *gorm.DB) (*LocalStorage, error) {
 
 // Create returns a writer that writes to local storage
 func (s *LocalStorage) Create() (Writer, error) {
-	return NewLocalStorageWriter(s.dataDir(), nil, s.locationRepo, s.storyIndex)
+	return NewLocalStorageWriter(s.dataDir(), nil, s.locationRepo, s.index)
 }
 
 // Delete all files with given ID from local storage
@@ -116,29 +111,52 @@ func (s *LocalStorage) Contains(id string) (bool, error) {
 	return true, nil
 }
 
-// Add adds info about an existing local file to the database
-func (s *LocalStorage) Add(path string) (Location, error) {
-	// Get the absolute path first
-	absPath, err := filepath.Abs(path)
+// AddStory adds a story to local storage
+func (s *LocalStorage) AddStory(obj interface{}) error {
+	// Marshal to YAML first
+	bytes, err := yaml.Marshal(&obj)
 	if err != nil {
-		return Location{}, err
+		return err
 	}
 
+	// Create a file for the story in local storage
+	w, err := s.Create()
+	if err != nil {
+		return err
+	}
+
+	// Write story to the file
+	_, err = w.Write(bytes)
+	if err != nil {
+		return err
+	}
+
+	// Finalize and the final ID
+	_, err = w.Finalize()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Add adds info about an existing local file to the database
+func (s *LocalStorage) Add(path string) (Location, error) {
 	// Check if already added
-	existing, err := s.locationRepo.Find(absPath)
+	existing, err := s.locationRepo.Find(path)
 	if err == nil {
 		return existing, ErrAlreadyAdded
 	}
 
 	// ID the file
-	fileId, err := id.ResolveFileID(absPath, id.NewID0Resolver())
+	fileId, err := id.ResolveFileID(path, id.NewID0Resolver())
 	if err != nil {
 		return Location{}, err
 	}
 
 	// Build Location object
 	loc := Location{
-		Location:   absPath,
+		Location:   path,
 		ID:         fileId,
 		VerifiedAt: time.Now(),
 	}
@@ -149,7 +167,32 @@ func (s *LocalStorage) Add(path string) (Location, error) {
 		return Location{}, err
 	}
 
-	_ = s.storyIndex.IndexFile(path)
+	_, err = story.ParseHeaderFromFile(path)
+	if err == nil {
+		log.Println("added a story file")
+		// Add to story index
+		_ = s.index.AddFile(path)
+	} else {
+		// Add FileInfo
+		info := core.FileInfo{
+			Story: story.Header{
+				Rel: []string{fileId},
+			},
+			Name: filepath.Base(path),
+			Type: "",
+		}
+
+		mimeBytes, err := exec.Command("file", "--mime-type", "-L", path).Output()
+		if err == nil {
+			info.Type = strings.TrimSpace(string(mimeBytes[len(path)+2:]))
+		}
+
+		info.Sanitize()
+		err = s.AddStory(info)
+		if err != nil {
+			log.Println("error generating FileInfo:", err)
+		}
+	}
 
 	return loc, nil
 }
@@ -186,16 +229,17 @@ func (s *LocalStorage) Path(id string) (string, error) {
 	return "", ErrFileNotFound
 }
 
-func (s *LocalStorage) Search(query string) []string {
-	var res = make([]string, 0)
-	matches, _ := s.storyIndex.QueryType("core.fileinfo", query)
+func (s *LocalStorage) Search(query string) map[string]string {
+	var info core.FileInfo
+	var res = make(map[string]string, 0)
+	matches, _ := s.index.FileInfoIndex.Search(query)
 
 	for _, m := range matches {
 		r, _ := s.Open(m)
 		data, _ := ioutil.ReadAll(r)
-		header, _ := story.ParseHeader(data)
-		for _, r := range header.Rel {
-			res = append(res, r)
+		_ = story.ParseStory(data, &info)
+		for _, r := range info.Story.Rel {
+			res[r] = info.Name
 		}
 	}
 

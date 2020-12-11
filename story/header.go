@@ -1,7 +1,6 @@
 package story
 
 import (
-	"errors"
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -15,9 +14,6 @@ type Header struct {
 }
 
 const MaxStorySize = 65535
-
-var ErrDataTooBig = errors.New("data too big")
-var ErrHeaderMissing = errors.New("header missing")
 
 // ParseHeader tries to parse a story header from data
 func ParseHeader(data []byte) (*Header, error) {

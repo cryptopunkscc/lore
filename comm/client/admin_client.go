@@ -89,7 +89,7 @@ func (admin *AdminClient) RemoveSource(address string) error {
 	return nil
 }
 
-func (admin *AdminClient) Search(query string) ([]string, error) {
+func (admin *AdminClient) Search(query string) (map[string]string, error) {
 	var err error
 	var response proto.AdminSearchResponse
 
