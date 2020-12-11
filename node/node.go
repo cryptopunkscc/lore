@@ -5,6 +5,7 @@ import (
 	"github.com/cryptopunkscc/lore/comm/server"
 	"github.com/cryptopunkscc/lore/lore/storage"
 	"github.com/cryptopunkscc/lore/node/swarm"
+	"github.com/cryptopunkscc/lore/story"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"os"
@@ -19,6 +20,7 @@ type Node struct {
 	localStorage *storage.LocalStorage
 	swarm        *swarm.Swarm
 	server       *server.Server
+	storyRepo    story.StoryRepo
 }
 
 func NewNode(config Config) (*Node, error) {
@@ -35,6 +37,12 @@ func NewNode(config Config) (*Node, error) {
 	node.db, err = gorm.Open(sqlite.Open(absDbPath), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("error opening database: %e", err)
+	}
+
+	// Set up story repo
+	node.storyRepo, err = story.NewStoryRepoGorm(node.db)
+	if err != nil {
+		return nil, err
 	}
 
 	// Set up local storage
