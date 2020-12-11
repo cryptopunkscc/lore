@@ -3,13 +3,38 @@ package storage
 import (
 	"github.com/cryptopunkscc/lore/id"
 	"github.com/cryptopunkscc/lore/story"
+	"io/ioutil"
 )
 
 type StoryIndex struct {
 	storyRepo story.StoryRepo
 }
 
-func (idx *StoryIndex) IndexAs(id string, header *story.Header) error {
+func (idx *StoryIndex) IndexFile(path string) error {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	return idx.Index(data)
+}
+
+func (idx *StoryIndex) Index(data []byte) error {
+	header, err := story.ParseHeader(data)
+	if err == nil {
+		fileId, err := id.ResolveID(data, nil)
+		if err != nil {
+			return err
+		}
+		return idx.indexHeader(fileId, header)
+	}
+	return nil
+}
+
+func (idx *StoryIndex) Forget(id string) error {
+	return idx.storyRepo.Forget(id)
+}
+
+func (idx *StoryIndex) indexHeader(id string, header *story.Header) error {
 	var err error
 
 	err = idx.storyRepo.SetStoryType(id, header.Type)
@@ -23,20 +48,4 @@ func (idx *StoryIndex) IndexAs(id string, header *story.Header) error {
 	}
 
 	return nil
-}
-
-func (idx *StoryIndex) IndexFile(path string) error {
-	header, err := story.ParseHeaderFromFile(path)
-	if err == nil {
-		fileId, err := id.ResolveFileID(path, nil)
-		if err != nil {
-			return err
-		}
-		return idx.IndexAs(fileId, header)
-	}
-	return nil
-}
-
-func (idx *StoryIndex) Forget(id string) error {
-	return idx.storyRepo.Forget(id)
 }
