@@ -5,20 +5,23 @@ import (
 	"os"
 )
 
+// Resolver is an interface for ID resolvers
 type Resolver interface {
-	Write([]byte) (int, error)
+	io.Writer
 	Resolve() string
 }
 
-func defaultResolver() Resolver {
-	return NewID0Resolver()
+// DefaultResolver returns a copy of the default resolver.
+func DefaultResolver() Resolver {
+	return NewID1Resolver()
 }
 
+// ResolveID resolves the ID of data in a byte array. If no resolver is provided, DefaultResolver is used.
 func ResolveID(data []byte, resolver Resolver) (string, error) {
 	var err error
 
 	if resolver == nil {
-		resolver = defaultResolver()
+		resolver = DefaultResolver()
 	}
 
 	_, err = resolver.Write(data)
@@ -29,6 +32,7 @@ func ResolveID(data []byte, resolver Resolver) (string, error) {
 	return resolver.Resolve(), nil
 }
 
+// ResolveFileID resolves the ID of file. If no resolver is provided, DefaultResolver is used.
 func ResolveFileID(path string, resolver Resolver) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -37,7 +41,7 @@ func ResolveFileID(path string, resolver Resolver) (string, error) {
 	defer file.Close()
 
 	if resolver == nil {
-		resolver = defaultResolver()
+		resolver = DefaultResolver()
 	}
 
 	_, err = io.Copy(resolver, file)

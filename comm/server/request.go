@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type Request struct {
@@ -39,12 +40,23 @@ func (req *Request) OK(data interface{}) error {
 	return err
 }
 
+func (req *Request) ServerError(msg string) error {
+	var err error
+	req.ResponseWriter.WriteHeader(http.StatusInternalServerError)
+	_, err = req.ResponseWriter.Write([]byte(msg))
+	return err
+}
+
 func (req *Request) NotFound() {
 	http.NotFound(req.ResponseWriter, req.Request)
 }
 
 func (req *Request) ServeFile(path string) {
 	http.ServeFile(req.ResponseWriter, req.Request, path)
+}
+
+func (req *Request) Serve(name string, content io.ReadSeeker) {
+	http.ServeContent(req.ResponseWriter, req.Request, name, time.Time{}, content)
 }
 
 func (req *Request) Scope() string {
@@ -54,6 +66,9 @@ func (req *Request) Scope() string {
 
 func (req *Request) Method() string {
 	segments := strings.Split(req.Request.URL.Path, "/")[1:]
+	if len(segments) < 2 {
+		return ""
+	}
 	return segments[1]
 }
 

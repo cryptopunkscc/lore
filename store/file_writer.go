@@ -1,4 +1,4 @@
-package storage
+package store
 
 import (
 	"github.com/cryptopunkscc/lore/id"
@@ -31,7 +31,7 @@ func NewFileWriter(dir string, resolver id.Resolver) (*FileWriter, error) {
 
 	// Use default resolver if none provided
 	if resolver == nil {
-		resolver = id.NewID0Resolver()
+		resolver = id.DefaultResolver()
 	}
 
 	return &FileWriter{
@@ -73,9 +73,8 @@ func (w *FileWriter) Finalize() (string, error) {
 
 // Discard deletes the data
 func (w *FileWriter) Discard() error {
-	err := w.tmp.Close()
-	if err != nil {
-		return err
-	}
+	// Try to close, but ignore errors, since we want to delete the file anyways
+	_ = w.tmp.Close()
+
 	return os.Remove(w.tmp.Name())
 }

@@ -3,6 +3,7 @@ package story
 import (
 	"fmt"
 	"gopkg.in/yaml.v2"
+	"io"
 	"io/ioutil"
 	"os"
 )
@@ -56,6 +57,16 @@ func ParseHeaderFromFile(file string) (*Header, error) {
 
 	// Parse the data
 	return ParseHeader(data)
+}
+
+// ParseHeaderFromReader reads all data from the provided reader and parses a story header
+func ParseHeaderFromReader(reader io.Reader) (*Header, error) {
+	bytes, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	return ParseHeader(bytes)
 }
 
 // ParseStory parses the story from bytes into provided obj file using YAML Unmarshal

@@ -29,10 +29,10 @@ Start the daemon first:
 
 Then you can use the cli tool to control the daemon:
 
-    $ lore-cli add <path>        # add a local file to shared files
-    $ lore-cli list              # list IDs of locally shared files
-    $ lore-cli addsource <url>   # add an external lored as a data source
-    $ lore-cli listsources       # list data sources
-    $ lore-cli play <id>         # find a file with provided ID and play it locally
+    $ lore-cli create            # reads and save data from stdin and returns the id
+    $ lore-cli list              # list all available files
+    $ lore-cli read <id>         # streams the file to stdout
+    $ lore-cli play <id>         # streams the file to ffplay
+    $ lore-cli delete <id>       # deletes the file
 
 Uses ffplay to play files. Make sure it's in your $PATH.

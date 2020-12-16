@@ -3,24 +3,19 @@ package node
 import (
 	"fmt"
 	"github.com/cryptopunkscc/lore/comm/server"
-	"github.com/cryptopunkscc/lore/node/swarm"
-	"github.com/cryptopunkscc/lore/storage"
-	"github.com/cryptopunkscc/lore/story"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"os"
 	"path/filepath"
 )
 
-const dbPath = ".lore/db.sqlite3"
+const dbFileName = "db.sqlite3"
 
 type Node struct {
-	config       Config
-	db           *gorm.DB
-	localStorage *storage.LocalStorage
-	swarm        *swarm.Swarm
-	server       *server.Server
-	storyRepo    story.HeaderRepo
+	config      Config
+	db          *gorm.DB
+	deviceStore *DeviceStore
+	server      *server.Server
 }
 
 func NewNode(config Config) (*Node, error) {
@@ -30,32 +25,35 @@ func NewNode(config Config) (*Node, error) {
 		config: config,
 	}
 
-	// Open the database
-	home, _ := os.UserHomeDir()
-	_ = os.MkdirAll(filepath.Join(home, ".lore"), 0700)
-	absDbPath := filepath.Join(home, dbPath)
-	node.db, err = gorm.Open(sqlite.Open(absDbPath), &gorm.Config{})
-	if err != nil {
-		return nil, fmt.Errorf("error opening database: %e", err)
-	}
-
-	// Set up story repo
-	node.storyRepo, err = story.NewHeaderRepoGorm(node.db)
+	// Make sure node directory exists
+	err = os.MkdirAll(node.config.GetNodeDir(), 0700)
 	if err != nil {
 		return nil, err
 	}
 
-	// Set up local storage
-	node.localStorage, err = storage.NewLocalStorage(node.db)
+	// Read the database
+	dbPath := filepath.Join(node.config.GetNodeDir(), dbFileName)
+	node.db, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("error opening database: %w", err)
+	}
+
+	// Set up device store
+	node.deviceStore, err = NewDeviceStore(&node.config, node.db)
 	if err != nil {
 		return nil, err
 	}
 
-	// Set up swarm
-	node.swarm = swarm.NewSwarm()
+	for _, path := range config.Paths {
+		_ = node.deviceStore.AddLocalDir(path)
+	}
+
+	for _, url := range config.Urls {
+		_ = node.deviceStore.AddNetworkStore(url)
+	}
 
 	// Instantiate the server
-	node.server, err = server.NewServer(server.TCPContentConfig, node.localStorage, node.swarm)
+	node.server, err = server.NewServer(server.TCPContentConfig, node.deviceStore)
 	if err != nil {
 		return nil, err
 	}

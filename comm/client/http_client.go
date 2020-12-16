@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/cryptopunkscc/lore/httpfile"
 	"github.com/tv42/httpunix"
 	"io"
 	"io/ioutil"
@@ -13,8 +14,6 @@ import (
 	"path/filepath"
 	"time"
 )
-
-var _ APIClient = &HTTPClient{}
 
 type HTTPClient struct {
 	logger *log.Logger
@@ -46,21 +45,17 @@ func NewHTTPClient(rootURL string) *HTTPClient {
 	}
 }
 
-func (client *HTTPClient) GetStream(scope string, method string) (io.Reader, error) {
+func (client *HTTPClient) GetStream(scope string, method string) (io.ReadSeeker, error) {
 	// Prepare full URL
 	u, _ := url.Parse(client.url)
 	u.Path = filepath.Join(u.Path, scope, method)
 
-	httpRes, err := client.http.Get(u.String())
+	httpFile, err := httpfile.Open(u.String())
 	if err != nil {
 		return nil, err
 	}
 
-	if httpRes.StatusCode != 200 {
-		return nil, fmt.Errorf("unexpected http response code %d", httpRes.StatusCode)
-	}
-
-	return httpRes.Body, nil
+	return httpFile, nil
 }
 
 func (client *HTTPClient) Call(scope string, method string, req interface{}, res interface{}) error {

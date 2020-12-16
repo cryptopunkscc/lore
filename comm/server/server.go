@@ -1,8 +1,7 @@
 package server
 
 import (
-	"github.com/cryptopunkscc/lore/node/swarm"
-	"github.com/cryptopunkscc/lore/storage"
+	"github.com/cryptopunkscc/lore/store"
 	"log"
 	"net"
 	"net/http"
@@ -13,15 +12,11 @@ type Server struct {
 	cfg Config
 
 	// services
-	localStorage *storage.LocalStorage
-	swarm        *swarm.Swarm
-	logger       *log.Logger
+	store  store.ReadEditor
+	logger *log.Logger
 
 	// handlers
-	downloadHandler RequestHandler
-	localHandler    RequestHandler
-	itemHandler     RequestHandler
-	adminHandler    RequestHandler
+	storeHandler RequestHandler
 
 	// local
 	lis       net.Listener
@@ -35,12 +30,11 @@ type RequestHandler interface {
 
 const unixSocketPath = "/tmp/lore.sock"
 
-func NewServer(cfg Config, localStorage *storage.LocalStorage, swarm *swarm.Swarm) (*Server, error) {
+func NewServer(cfg Config, store store.ReadEditor) (*Server, error) {
 	srv := &Server{
-		cfg:          cfg,
-		localStorage: localStorage,
-		swarm:        swarm,
-		mux:          http.NewServeMux(),
+		cfg:   cfg,
+		store: store,
+		mux:   http.NewServeMux(),
 	}
 
 	// Set up logging
@@ -51,10 +45,7 @@ func NewServer(cfg Config, localStorage *storage.LocalStorage, swarm *swarm.Swar
 	}
 
 	// Set up handlers
-	srv.downloadHandler = &DownloadHandler{storage: srv.localStorage, logger: srv.logger}
-	srv.localHandler = &LocalHandler{storage: srv.localStorage, logger: srv.logger, swarm: swarm}
-	srv.itemHandler = &ItemHandler{storage: srv.localStorage, logger: srv.logger}
-	srv.adminHandler = &AdminHandler{storage: srv.localStorage, swarm: swarm, logger: srv.logger}
+	srv.storeHandler = &StoreHandler{store: srv.store, logger: srv.logger}
 
 	return srv, nil
 }
@@ -70,14 +61,8 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// Handle the request
 	switch r.Scope() {
-	case "download":
-		srv.downloadHandler.Handle(&r)
-	case "local":
-		srv.localHandler.Handle(&r)
-	case "item":
-		srv.itemHandler.Handle(&r)
-	case "admin":
-		srv.adminHandler.Handle(&r)
+	case "store":
+		srv.storeHandler.Handle(&r)
 	default:
 		r.NotFound()
 	}

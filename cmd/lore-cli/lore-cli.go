@@ -2,40 +2,22 @@ package main
 
 import (
 	"fmt"
-	"github.com/cryptopunkscc/lore/comm/client"
+	"github.com/cryptopunkscc/lore/store"
 	"io"
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
 )
 
-const adminURL = "http://localhost:10768/"
+const storeURL = "http://localhost:10768/store"
 
 type App struct {
-	client *client.Client
-}
-
-// Add adds a local file to shared files
-func (app *App) Add(path string) {
-	var err error
-
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	id, err := app.client.Admin().Add(absPath)
-	if err != nil {
-		log.Fatalln("error adding file:", err)
-	}
-
-	log.Println("added file:", id)
+	store *store.HTTPStore
 }
 
 // List show a list of all shared files
 func (app *App) List() {
-	list, err := app.client.Admin().List()
+	list, err := app.store.List()
 	if err != nil {
 		log.Fatalln("api error:", err)
 	}
@@ -44,52 +26,47 @@ func (app *App) List() {
 	}
 }
 
-// Search searches shared files by name
-func (app *App) Search(query string) {
-	list, err := app.client.Admin().Search(query)
+func (app *App) Read(id string) {
+	file, err := app.store.Read(id)
 	if err != nil {
 		log.Fatalln("api error:", err)
 	}
-	for id, item := range list {
-		fmt.Println(id, item)
-	}
-}
 
-// AddSource adds an address to the sources list
-func (app *App) AddSource(address string) {
-	err := app.client.Admin().AddSource(address)
-	if err != nil {
-		log.Fatalln("error adding source:", err)
-		return
-	}
-	log.Println("source added")
-}
-
-// RemoveSource removes an address from the sources list
-func (app *App) RemoveSource(address string) {
-	err := app.client.Admin().RemoveSource(address)
-	if err != nil {
-		log.Fatalln("error removing source:", err)
-		return
-	}
-	log.Println("source removed")
-}
-
-// ListSources fetches the sources list
-func (app *App) ListSources() {
-	list, err := app.client.Admin().ListSources()
+	_, err = io.Copy(os.Stdout, file)
 	if err != nil {
 		log.Fatalln("api error:", err)
 	}
-	fmt.Printf("%d sources on the list:\n", len(list))
-	for _, i := range list {
-		fmt.Println(i)
+}
+
+func (app *App) Create() {
+	file, err := app.store.Create()
+	if err != nil {
+		log.Fatalln("api error:", err)
+	}
+
+	_, err = io.Copy(file, os.Stdin)
+	if err != nil {
+		log.Fatalln("api error:", err)
+	}
+
+	id, err := file.Finalize()
+	if err != nil {
+		log.Fatalln("api error:", err)
+	}
+
+	fmt.Println(id)
+}
+
+func (app *App) Delete(id string) {
+	err := app.store.Delete(id)
+	if err != nil {
+		log.Fatalln("api error:", err)
 	}
 }
 
-// PlayByID searches for a file and plays it locally using ffplay
-func (app *App) PlayByID(id string) {
-	stream, err := app.client.Local().Stream(id)
+// Play reads a file and plays it locally using ffplay
+func (app *App) Play(id string) {
+	stream, err := app.store.Read(id)
 	if err != nil {
 		log.Fatalln("Error playing:", err)
 	}
@@ -110,39 +87,23 @@ func (app *App) PlayByID(id string) {
 	_ = cmd.Wait()
 }
 
-// Play searches and plays all files matching name
-func (app *App) Play(name string) {
-	list, err := app.client.Admin().Search(name)
-	if err != nil {
-		log.Fatalln("api error:", err)
-	}
-	for id, name := range list {
-		fmt.Println("Playing", name)
-		app.PlayByID(id)
-	}
-}
-
 // Run executes the command provided by the user
 func (app *App) Run(args []string) {
 	cmd := args[0]
 
 	switch cmd {
-	case "add":
-		app.Add(os.Args[2])
-	case "addsource":
-		app.AddSource(os.Args[2])
-	case "removesource":
-		app.RemoveSource(os.Args[2])
-	case "play":
-		app.Play(os.Args[2])
 	case "list":
 		app.List()
-	case "listsources":
-		app.ListSources()
-	case "search":
-		app.Search(os.Args[2])
+	case "create":
+		app.Create()
+	case "read":
+		app.Read(args[1])
+	case "delete":
+		app.Delete(args[1])
+	case "play":
+		app.Play(args[1])
 	default:
-		fmt.Println("unknown command")
+		fmt.Println("unknown command", cmd)
 	}
 }
 
@@ -151,8 +112,9 @@ func main() {
 		log.Fatalln("Usage: lore-cli <command> [args]")
 	}
 
-	c := client.NewClient(adminURL)
-	app := &App{client: c}
+	app := &App{
+		store: store.NewHTTPStore(storeURL),
+	}
 
 	app.Run(os.Args[1:])
 }
