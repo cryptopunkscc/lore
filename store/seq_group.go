@@ -4,28 +4,26 @@ import "errors"
 
 var _ Group = &SeqGroup{}
 
-// Group provides a ReadEditor interface over a collection of stores.
+// Group provides a Store interface over a collection of stores.
 type SeqGroup struct {
-	stores []ReadEditor
+	stores []Store
 }
 
 // NewSeqGroup makes a new instance of a SeqGroup
 func NewSeqGroup() *SeqGroup {
 	m := &SeqGroup{}
-
-	m.stores = make([]ReadEditor, 0)
-
+	m.stores = make([]Store, 0)
 	return m
 }
 
 // Add adds a store to the collection
-func (group *SeqGroup) Add(store ReadEditor) error {
+func (group *SeqGroup) Add(store Store) error {
 	group.stores = append(group.stores, store)
 	return nil
 }
 
 // Remove removes a store from the collection
-func (group *SeqGroup) Remove(store ReadEditor) error {
+func (group *SeqGroup) Remove(store Store) error {
 	for i, s := range group.stores {
 		if s == store {
 			group.stores = append(group.stores[:i], group.stores[i+1:]...)

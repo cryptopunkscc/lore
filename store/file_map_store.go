@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var _ ReadEditor = &FileMapStore{}
+var _ Store = &FileMapStore{}
 
 // FileMapStore is an implementation of Reader that existing files to their IDs
 type FileMapStore struct {

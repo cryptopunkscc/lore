@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 )
 
-var _ ReadEditor = &HTTPStore{}
+var _ Store = &HTTPStore{}
 
 type HTTPStore struct {
 	baseUrl string

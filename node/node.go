@@ -3,6 +3,7 @@ package node
 import (
 	"fmt"
 	"github.com/cryptopunkscc/lore/comm/server"
+	"github.com/cryptopunkscc/lore/store"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"os"
@@ -11,11 +12,22 @@ import (
 
 const dbFileName = "db.sqlite3"
 
+var _ store.Observer = &Node{}
+
 type Node struct {
 	config      Config
 	db          *gorm.DB
 	deviceStore *DeviceStore
 	server      *server.Server
+	index       *NodeIndex
+}
+
+func (node *Node) Added(id string) {
+	_ = node.index.Add(id, node.deviceStore)
+}
+
+func (node *Node) Removed(id string) {
+	_ = node.index.Remove(id)
 }
 
 func NewNode(config Config) (*Node, error) {
@@ -39,7 +51,13 @@ func NewNode(config Config) (*Node, error) {
 	}
 
 	// Set up device store
-	node.deviceStore, err = NewDeviceStore(&node.config, node.db)
+	node.deviceStore, err = NewDeviceStore(&node.config, node.db, node)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set up the index
+	node.index, err = NewNodeIndex(node.db)
 	if err != nil {
 		return nil, err
 	}

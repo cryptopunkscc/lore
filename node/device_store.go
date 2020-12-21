@@ -6,26 +6,34 @@ import (
 	"log"
 )
 
-var _ store.ReadEditor = &DeviceStore{}
+var _ store.Store = &DeviceStore{}
 
 type DeviceStore struct {
 	config         *Config
 	fileMapRepo    store.FileMapRepo
-	primary        store.ReadEditor
+	primary        store.Store
 	readableStores store.Group
 	networkStores  store.Group
 	db             *gorm.DB
+
+	storeObserver store.Observer
 }
 
 func (dev *DeviceStore) Added(id string) {
-	log.Println("Added", id)
+	log.Println(id, "added")
+	if dev.storeObserver != nil {
+		dev.storeObserver.Added(id)
+	}
 }
 
 func (dev *DeviceStore) Removed(id string) {
-	log.Println("Removed", id)
+	log.Println(id, "removed")
+	if dev.storeObserver != nil {
+		dev.storeObserver.Removed(id)
+	}
 }
 
-func NewDeviceStore(config *Config, db *gorm.DB) (*DeviceStore, error) {
+func NewDeviceStore(config *Config, db *gorm.DB, storeObserver store.Observer) (*DeviceStore, error) {
 	var err error
 
 	dev := &DeviceStore{
@@ -33,6 +41,7 @@ func NewDeviceStore(config *Config, db *gorm.DB) (*DeviceStore, error) {
 		readableStores: store.NewSeqGroup(),
 		networkStores:  store.NewSeqGroup(),
 		db:             db,
+		storeObserver:  storeObserver,
 	}
 
 	dev.primary, err = store.NewFileStore(dev.config.GetDataDir())
@@ -84,9 +93,24 @@ func (dev *DeviceStore) List() ([]string, error) {
 }
 
 func (dev *DeviceStore) Create() (store.Writer, error) {
-	return dev.primary.Create()
+	w, err := dev.primary.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	ww := store.NewWrappedWriter(w, func(id string, err error) error {
+		if err == nil {
+			dev.Added(id)
+		}
+		return err
+	})
+	return ww, nil
 }
 
 func (dev *DeviceStore) Delete(id string) error {
-	return dev.primary.Delete(id)
+	err := dev.primary.Delete(id)
+	if err == nil {
+		dev.Removed(id)
+	}
+	return err
 }

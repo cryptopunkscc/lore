@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-var _ ReadEditor = &FileStore{}
+var _ Store = &FileStore{}
 
 type FileStore struct {
 	rootDir string

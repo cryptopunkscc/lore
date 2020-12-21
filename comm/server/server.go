@@ -12,7 +12,7 @@ type Server struct {
 	cfg Config
 
 	// services
-	store  store.ReadEditor
+	store  store.Store
 	logger *log.Logger
 
 	// handlers
@@ -30,7 +30,7 @@ type RequestHandler interface {
 
 const unixSocketPath = "/tmp/lore.sock"
 
-func NewServer(cfg Config, store store.ReadEditor) (*Server, error) {
+func NewServer(cfg Config, store store.Store) (*Server, error) {
 	srv := &Server{
 		cfg:   cfg,
 		store: store,

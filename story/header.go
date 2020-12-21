@@ -16,8 +16,8 @@ type Header struct {
 
 const MaxStorySize = 65535
 
-// ParseHeader tries to parse a story header from data
-func ParseHeader(data []byte) (*Header, error) {
+// ParseHeaderFromBytes tries to parse a story header from data
+func ParseHeaderFromBytes(data []byte) (*Header, error) {
 	// Check data size
 	if len(data) > MaxStorySize {
 		return nil, ErrDataTooBig
@@ -56,24 +56,15 @@ func ParseHeaderFromFile(file string) (*Header, error) {
 	}
 
 	// Parse the data
-	return ParseHeader(data)
+	return ParseHeaderFromBytes(data)
 }
 
-// ParseHeaderFromReader reads all data from the provided reader and parses a story header
-func ParseHeaderFromReader(reader io.Reader) (*Header, error) {
+// ParseHeader reads all data from the provided reader and parses a story header
+func ParseHeader(reader io.Reader) (*Header, error) {
 	bytes, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
 
-	return ParseHeader(bytes)
-}
-
-// ParseStory parses the story from bytes into provided obj file using YAML Unmarshal
-func ParseStory(data []byte, obj interface{}) error {
-	err := yaml.Unmarshal(data, obj)
-	if err != nil {
-		return fmt.Errorf("error parsing story: %w", err)
-	}
-	return nil
+	return ParseHeaderFromBytes(bytes)
 }

@@ -12,8 +12,8 @@ type Editor interface {
 	Delete(id string) error
 }
 
-// ReadEditor includes methods for full store access
-type ReadEditor interface {
+// Store includes methods for full store access
+type Store interface {
 	Reader
 	Editor
 }

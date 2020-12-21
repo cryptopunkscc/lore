@@ -23,7 +23,7 @@ func (w *WrappedWriter) Write(data []byte) (int, error) {
 
 // Finalize will call Finalize on the underlying writer and pass the results to the provided callback
 func (w *WrappedWriter) Finalize() (string, error) {
-	id, err := w.Finalize()
+	id, err := w.writer.Finalize()
 
 	if w.onFinalize != nil {
 		err2 := w.onFinalize(id, err)

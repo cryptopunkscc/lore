@@ -8,7 +8,7 @@ import (
 
 type StoreHandler struct {
 	logger *log.Logger
-	store  store.ReadEditor
+	store  store.Store
 }
 
 func (handler *StoreHandler) Handle(req *Request) {
