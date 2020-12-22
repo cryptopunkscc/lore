@@ -4,11 +4,13 @@ import (
 	"github.com/cryptopunkscc/lore/index"
 	"github.com/cryptopunkscc/lore/store"
 	"gorm.io/gorm"
+	"log"
 )
 
 type NodeIndex struct {
-	fileTypeIdx    *index.FileTypeIndex
-	storyHeaderIdx *index.StoryHeaderIndex
+	fileTypeIndex    *index.FileTypeIndex
+	storyHeaderIndex *index.StoryHeaderIndex
+	coreLabelIndex   *index.CoreLabelIndex
 }
 
 func NewNodeIndex(db *gorm.DB) (*NodeIndex, error) {
@@ -20,14 +22,21 @@ func NewNodeIndex(db *gorm.DB) (*NodeIndex, error) {
 		return nil, err
 	}
 
-	idx.fileTypeIdx = index.NewFileTypeIndex(fileTypeRepo)
+	idx.fileTypeIndex = index.NewFileTypeIndex(fileTypeRepo)
 
 	storyHeaderRepo, err := index.NewStoryHeaderRepoGorm(db)
 	if err != nil {
 		return nil, err
 	}
 
-	idx.storyHeaderIdx = index.NewStoryHeaderIndex(storyHeaderRepo)
+	idx.storyHeaderIndex = index.NewStoryHeaderIndex(storyHeaderRepo)
+
+	coreLabelRepo, err := index.NewCoreLabelRepoGorm(db)
+	if err != nil {
+		return nil, err
+	}
+
+	idx.coreLabelIndex = index.NewCoreLabelIndex(coreLabelRepo)
 
 	return idx, nil
 }
@@ -35,23 +44,30 @@ func NewNodeIndex(db *gorm.DB) (*NodeIndex, error) {
 func (idx *NodeIndex) Add(id string, store store.Reader) error {
 	var err error
 
-	err = idx.fileTypeIdx.Add(id, store)
+	err = idx.fileTypeIndex.Add(id, store)
 	if err != nil {
 		return err
 	}
 
-	err = idx.storyHeaderIdx.Add(id, store)
+	err = idx.storyHeaderIndex.Add(id, store)
 	if err != nil {
 		return err
+	}
+
+	err = idx.coreLabelIndex.Add(id, store)
+	if err != nil {
+		log.Println("CoreLabelIndex:", err)
 	}
 
 	return nil
 }
 
 func (idx *NodeIndex) Remove(id string) error {
-	_ = idx.fileTypeIdx.Remove(id)
+	_ = idx.fileTypeIndex.Remove(id)
 
-	_ = idx.storyHeaderIdx.Remove(id)
+	_ = idx.storyHeaderIndex.Remove(id)
+
+	_ = idx.coreLabelIndex.Remove(id)
 
 	return nil
 }
