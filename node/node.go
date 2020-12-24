@@ -23,7 +23,10 @@ type Node struct {
 }
 
 func (node *Node) Added(id string) {
-	_ = node.index.Add(id, node.deviceStore)
+	err := node.index.Add(id, node.deviceStore)
+	if err != nil {
+		fmt.Println(id, "indexing error:", err)
+	}
 }
 
 func (node *Node) Removed(id string) {

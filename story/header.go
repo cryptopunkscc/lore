@@ -11,7 +11,7 @@ import (
 type Header struct {
 	Version int
 	Type    string
-	Rel     []string `yaml:"omitempty"`
+	Rel     []string `yaml:",omitempty"`
 }
 
 const MaxStorySize = 65535
