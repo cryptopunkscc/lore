@@ -10,20 +10,16 @@ import (
 var _ Store = &FileStore{}
 
 type FileStore struct {
-	rootDir string
+	rootDir      string
+	addedEvent   EventFunc
+	removedEvent EventFunc
 }
 
-func (f FileStore) Free() (int64, error) {
-	info, err := disk.GetInfo(f.rootDir)
-	if err != nil {
-		return 0, err
+func NewFileStore(rootDir string, added EventFunc, removed EventFunc) (*FileStore, error) {
+	store := &FileStore{
+		addedEvent:   added,
+		removedEvent: removed,
 	}
-
-	return int64(info.Free), nil
-}
-
-func NewFileStore(rootDir string) (*FileStore, error) {
-	store := &FileStore{}
 
 	store.rootDir, _ = util.ExpandPath(rootDir)
 
@@ -34,6 +30,15 @@ func NewFileStore(rootDir string) (*FileStore, error) {
 	}
 
 	return store, nil
+}
+
+func (f FileStore) Free() (int64, error) {
+	info, err := disk.GetInfo(f.rootDir)
+	if err != nil {
+		return 0, err
+	}
+
+	return int64(info.Free), nil
 }
 
 func (f FileStore) Read(id string) (ReadSeekCloser, error) {
@@ -55,11 +60,37 @@ func (f FileStore) List() ([]string, error) {
 }
 
 func (f FileStore) Create() (Writer, error) {
-	return NewFileWriter(f.rootDir, nil)
+	writer, err := NewFileWriter(f.rootDir, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// If there's no observer return the original writer directly
+	if f.addedEvent == nil {
+		return writer, nil
+	}
+
+	// Wrap the writer into a callback
+	return NewWrappedWriter(writer, func(id string, err error) error {
+		if err != nil {
+			return nil
+		}
+		f.addedEvent(id)
+		return nil
+	}), nil
 }
 
 func (f FileStore) Delete(id string) error {
 	path := filepath.Join(f.rootDir, id)
 
-	return os.Remove(path)
+	err := os.Remove(path)
+	if err != nil {
+		return err
+	}
+
+	if f.removedEvent != nil {
+		f.removedEvent(id)
+	}
+
+	return nil
 }

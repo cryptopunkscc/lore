@@ -19,20 +19,6 @@ type DeviceStore struct {
 	storeObserver store.Observer
 }
 
-func (dev *DeviceStore) Added(id string) {
-	log.Println(id, "added")
-	if dev.storeObserver != nil {
-		dev.storeObserver.Added(id)
-	}
-}
-
-func (dev *DeviceStore) Removed(id string) {
-	log.Println(id, "removed")
-	if dev.storeObserver != nil {
-		dev.storeObserver.Removed(id)
-	}
-}
-
 func NewDeviceStore(config *Config, db *gorm.DB, storeObserver store.Observer) (*DeviceStore, error) {
 	var err error
 
@@ -44,7 +30,7 @@ func NewDeviceStore(config *Config, db *gorm.DB, storeObserver store.Observer) (
 		storeObserver:  storeObserver,
 	}
 
-	dev.primary, err = store.NewFileStore(dev.config.GetDataDir())
+	dev.primary, err = store.NewFileStore(dev.config.GetDataDir(), dev.Added, dev.Removed)
 	if err != nil {
 		return nil, err
 	}
@@ -57,6 +43,20 @@ func NewDeviceStore(config *Config, db *gorm.DB, storeObserver store.Observer) (
 	}
 
 	return dev, nil
+}
+
+func (dev *DeviceStore) Added(id string) {
+	log.Println("<store> added", id)
+	if dev.storeObserver != nil {
+		dev.storeObserver.Added(id)
+	}
+}
+
+func (dev *DeviceStore) Removed(id string) {
+	log.Println("<store> removed", id)
+	if dev.storeObserver != nil {
+		dev.storeObserver.Removed(id)
+	}
 }
 
 func (dev *DeviceStore) AddLocalDir(path string) error {
@@ -97,24 +97,9 @@ func (dev *DeviceStore) Free() (int64, error) {
 }
 
 func (dev *DeviceStore) Create() (store.Writer, error) {
-	w, err := dev.primary.Create()
-	if err != nil {
-		return nil, err
-	}
-
-	ww := store.NewWrappedWriter(w, func(id string, err error) error {
-		if err == nil {
-			dev.Added(id)
-		}
-		return err
-	})
-	return ww, nil
+	return dev.primary.Create()
 }
 
 func (dev *DeviceStore) Delete(id string) error {
-	err := dev.primary.Delete(id)
-	if err == nil {
-		dev.Removed(id)
-	}
-	return err
+	return dev.primary.Delete(id)
 }

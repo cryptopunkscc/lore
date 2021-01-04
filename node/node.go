@@ -3,9 +3,11 @@ package node
 import (
 	"fmt"
 	"github.com/cryptopunkscc/lore/comm/server"
+	"github.com/cryptopunkscc/lore/graph"
 	"github.com/cryptopunkscc/lore/store"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"log"
 	"os"
 	"path/filepath"
@@ -20,18 +22,21 @@ type Node struct {
 	db          *gorm.DB
 	deviceStore *DeviceStore
 	server      *server.Server
-	index       *NodeIndex
+	graph       *graph.Graph
 }
 
 func (node *Node) Added(id string) {
-	err := node.index.Add(id, node.deviceStore)
+	_, err := node.graph.Add(id, node.deviceStore)
 	if err != nil {
-		fmt.Println(id, "indexing error:", err)
+		fmt.Println(id, "error adding node to graph:", err)
 	}
 }
 
 func (node *Node) Removed(id string) {
-	_ = node.index.Remove(id)
+	err := node.graph.Remove(id)
+	if err != nil {
+		fmt.Println(id, "error removing node from graph:", err)
+	}
 }
 
 func NewNode(config Config) (*Node, error) {
@@ -49,7 +54,9 @@ func NewNode(config Config) (*Node, error) {
 
 	// Read the database
 	dbPath := filepath.Join(node.config.GetNodeDir(), dbFileName)
-	node.db, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	node.db, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("error opening database: %w", err)
 	}
@@ -60,8 +67,13 @@ func NewNode(config Config) (*Node, error) {
 		return nil, err
 	}
 
+	graphRepo, err := graph.NewGraphRepoGorm(node.db)
+	if err != nil {
+		return nil, err
+	}
+
 	// Set up the index
-	node.index, err = NewNodeIndex(node.db)
+	node.graph, err = graph.NewGraph(graphRepo)
 	if err != nil {
 		return nil, err
 	}
