@@ -56,6 +56,16 @@ func (repo *StoryHeaderRepoGorm) Remove(id string) error {
 	return nil
 }
 
+func (repo *StoryHeaderRepoGorm) Find(types []string, rels []string) ([]string, error) {
+	q := repo.db
+
+	if types != nil {
+		q = q.Where("type in ?", types)
+	}
+
+	return nil, nil
+}
+
 func (repo *StoryHeaderRepoGorm) setStoryHeaderType(id string, typ string) error {
 	t := &gormStoryHeaderType{
 		ID:   id,

@@ -6,6 +6,7 @@ import (
 	"github.com/cryptopunkscc/lore/store"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -71,6 +72,13 @@ func NewNode(config Config) (*Node, error) {
 
 	for _, url := range config.Urls {
 		_ = node.deviceStore.AddNetworkStore(url)
+	}
+
+	free, err := node.deviceStore.Free()
+	if err != nil {
+		log.Println("Error checking free space:", err)
+	} else {
+		log.Println("Free store space:", free)
 	}
 
 	// Instantiate the server

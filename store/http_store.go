@@ -50,6 +50,29 @@ func (s HTTPStore) List() ([]string, error) {
 	return list, nil
 }
 
+func (s HTTPStore) Free() (int64, error) {
+	res, err := http.Get(s.url("free"))
+	if err != nil {
+		return 0, err
+	}
+	if res.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("http status %d", res.StatusCode)
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return 0, err
+	}
+
+	var free int64
+	err = json.Unmarshal(body, &free)
+	if err != nil {
+		return 0, err
+	}
+
+	return free, nil
+}
+
 func (s HTTPStore) Create() (Writer, error) {
 	return newHttpWriter(s.url(""))
 }

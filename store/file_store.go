@@ -2,6 +2,7 @@ package store
 
 import (
 	"github.com/cryptopunkscc/lore/util"
+	"github.com/minio/minio/pkg/disk"
 	"os"
 	"path/filepath"
 )
@@ -10,6 +11,15 @@ var _ Store = &FileStore{}
 
 type FileStore struct {
 	rootDir string
+}
+
+func (f FileStore) Free() (int64, error) {
+	info, err := disk.GetInfo(f.rootDir)
+	if err != nil {
+		return 0, err
+	}
+
+	return int64(info.Free), nil
 }
 
 func NewFileStore(rootDir string) (*FileStore, error) {

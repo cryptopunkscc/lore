@@ -63,6 +63,10 @@ func (group *SeqGroup) List() ([]string, error) {
 	return res, nil
 }
 
+func (group *SeqGroup) Free() (int64, error) {
+	return 0, ErrUnsupported
+}
+
 // Create will call Create on every store in the collection and return the result of the first successful call.
 func (group *SeqGroup) Create() (Writer, error) {
 	for _, s := range group.stores {

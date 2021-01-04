@@ -41,3 +41,7 @@ func (idx StoryHeaderIndex) Add(fileId string, store store.Reader) error {
 func (idx StoryHeaderIndex) Remove(fileId string) error {
 	return idx.repo.Remove(fileId)
 }
+
+func (idx StoryHeaderIndex) Query(types []string, rels []string) ([]string, error) {
+	return nil, nil
+}

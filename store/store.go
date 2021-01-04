@@ -10,6 +10,7 @@ type Reader interface {
 type Editor interface {
 	Create() (Writer, error)
 	Delete(id string) error
+	Free() (int64, error)
 }
 
 // Store includes methods for full store access
@@ -23,9 +24,4 @@ type Writer interface {
 	Write(data []byte) (int, error)
 	Finalize() (string, error)
 	Discard() error
-}
-
-// Info is a struct containing information about a store item
-type Info struct {
-	Size int64 // Size in bytes of the item
 }

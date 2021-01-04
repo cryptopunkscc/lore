@@ -89,6 +89,11 @@ func (store FileMapStore) List() ([]string, error) {
 	return list, nil
 }
 
+// Free implements Editor interface. This method is unsupported for this store.
+func (store *FileMapStore) Free() (int64, error) {
+	return 0, ErrUnsupported
+}
+
 // Create implements Editor interface. This method is unsupported for this store.
 func (store FileMapStore) Create() (Writer, error) {
 	return nil, ErrUnsupported

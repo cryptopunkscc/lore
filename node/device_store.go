@@ -92,6 +92,10 @@ func (dev *DeviceStore) List() ([]string, error) {
 	return dev.readableStores.List()
 }
 
+func (dev *DeviceStore) Free() (int64, error) {
+	return dev.primary.Free()
+}
+
 func (dev *DeviceStore) Create() (store.Writer, error) {
 	w, err := dev.primary.Create()
 	if err != nil {

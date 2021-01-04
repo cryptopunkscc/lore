@@ -4,6 +4,7 @@ import (
 	"github.com/cryptopunkscc/lore/store"
 	"io"
 	"log"
+	"net/http"
 )
 
 type StoreHandler struct {
@@ -12,18 +13,23 @@ type StoreHandler struct {
 }
 
 func (handler *StoreHandler) Handle(req *Request) {
-	if req.Method() == "" {
+	switch req.Method() {
+	case "":
 		switch req.Request.Method {
-		case "GET":
+		case http.MethodGet:
 			handler.HandleList(req)
-		case "POST":
+		case http.MethodPost:
 			handler.HandleCreate(req)
 		}
-	} else {
+	case "free":
+		if req.Request.Method == http.MethodGet {
+			handler.HandleFree(req)
+		}
+	default:
 		switch req.Request.Method {
-		case "GET":
+		case http.MethodGet:
 			handler.HandleRead(req)
-		case "DELETE":
+		case http.MethodDelete:
 			handler.HandleDelete(req)
 		}
 	}
@@ -85,4 +91,10 @@ func (handler *StoreHandler) HandleDelete(req *Request) {
 	}
 
 	req.OK(nil)
+}
+
+func (handler *StoreHandler) HandleFree(req *Request) {
+	free, _ := handler.store.Free()
+
+	req.OK(free)
 }
