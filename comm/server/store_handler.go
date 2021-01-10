@@ -1,6 +1,7 @@
 package server
 
 import (
+	_id "github.com/cryptopunkscc/lore/id"
 	"github.com/cryptopunkscc/lore/store"
 	"io"
 	"log"
@@ -36,17 +37,23 @@ func (handler *StoreHandler) Handle(req *Request) {
 }
 
 func (handler *StoreHandler) HandleRead(req *Request) {
-	id := req.Method()
+	idStr := req.Method()
+
+	id, err := _id.Parse(idStr)
+	if err != nil {
+		_ = req.ServerError(err.Error())
+		return
+	}
 
 	// Open the file
 	file, err := handler.store.Read(id)
 	if err != nil {
-		req.ServerError(err.Error())
+		_ = req.ServerError(err.Error())
 		return
 	}
 
 	// Serve it!
-	req.Serve(id, file)
+	req.Serve(id.String(), file)
 }
 
 func (handler *StoreHandler) HandleList(req *Request) {
@@ -78,23 +85,29 @@ func (handler *StoreHandler) HandleCreate(req *Request) {
 		return
 	}
 
-	_, _ = req.ResponseWriter.Write([]byte(id))
+	_, _ = req.ResponseWriter.Write([]byte(id.String()))
 }
 
 func (handler *StoreHandler) HandleDelete(req *Request) {
-	id := req.Method()
+	idStr := req.Method()
 
-	err := handler.store.Delete(id)
+	id, err := _id.Parse(idStr)
 	if err != nil {
 		_ = req.ServerError(err.Error())
 		return
 	}
 
-	req.OK(nil)
+	err = handler.store.Delete(id)
+	if err != nil {
+		_ = req.ServerError(err.Error())
+		return
+	}
+
+	_ = req.OK(nil)
 }
 
 func (handler *StoreHandler) HandleFree(req *Request) {
 	free, _ := handler.store.Free()
 
-	req.OK(free)
+	_ = req.OK(free)
 }

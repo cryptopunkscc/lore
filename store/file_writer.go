@@ -22,21 +22,16 @@ type FileWriter struct {
 // Call Discard() to stop writing and delete the data written so far.
 // Call Finalize() to close the file and resolve its final ID. The file will remain in the directory, but will be
 //   renamed to its ID.
-func NewFileWriter(dir string, resolver id.Resolver) (*FileWriter, error) {
+func NewFileWriter(dir string) (*FileWriter, error) {
 	// Create a temporary file
 	tmpFile, err := ioutil.TempFile(dir, "tmp-")
 	if err != nil {
 		return nil, err
 	}
 
-	// Use default resolver if none provided
-	if resolver == nil {
-		resolver = id.DefaultResolver()
-	}
-
 	return &FileWriter{
 		tmp:      tmpFile,
-		resolver: resolver,
+		resolver: id.NewResolver(),
 		dir:      dir,
 	}, nil
 }
@@ -51,21 +46,21 @@ func (w *FileWriter) Write(data []byte) (int, error) {
 }
 
 // Finalize closes the file, renames it to its resolver and returns the resolver
-func (w *FileWriter) Finalize() (string, error) {
+func (w *FileWriter) Finalize() (id.ID, error) {
 	// Close the temporary file
 	tmpPath := w.tmp.Name()
 	if err := w.tmp.Close(); err != nil {
-		return "", err
+		return id.ID{}, err
 	}
 
 	// Resolve the resolver of the file
 	fileId := w.resolver.Resolve()
 
-	// Rename temporary file to its resolver
-	dstPath := filepath.Join(w.dir, fileId)
+	// Rename temporary file to its id
+	dstPath := filepath.Join(w.dir, fileId.String())
 	err := os.Rename(tmpPath, dstPath)
 	if err != nil {
-		return "", err
+		return id.ID{}, err
 	}
 
 	return fileId, nil

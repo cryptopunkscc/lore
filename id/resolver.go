@@ -1,53 +1,51 @@
 package id
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"hash"
 	"io"
-	"os"
 )
 
-// Resolver is an interface for ID resolvers
 type Resolver interface {
 	io.Writer
-	Resolve() string
+	Resolve() ID
 }
 
-// DefaultResolver returns a copy of the default resolver.
-func DefaultResolver() Resolver {
-	return NewID1Resolver()
+type sha256Resolver struct {
+	hash hash.Hash
+	size uint64
 }
 
-// ResolveID resolves the ID of data in a byte array. If no resolver is provided, DefaultResolver is used.
-func ResolveID(data []byte, resolver Resolver) (string, error) {
-	var err error
-
-	if resolver == nil {
-		resolver = DefaultResolver()
+func NewResolver() Resolver {
+	return &sha256Resolver{
+		hash: sha256.New(),
+		size: 0,
 	}
-
-	_, err = resolver.Write(data)
-	if err != nil {
-		return "", err
-	}
-
-	return resolver.Resolve(), nil
 }
 
-// ResolveFileID resolves the ID of file. If no resolver is provided, DefaultResolver is used.
-func ResolveFileID(path string, resolver Resolver) (string, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
+func (r *sha256Resolver) Write(p []byte) (n int, err error) {
+	n, err = r.hash.Write(p)
+	r.size = r.size + uint64(n)
+	return
+}
 
-	if resolver == nil {
-		resolver = DefaultResolver()
-	}
+func (r sha256Resolver) Resolve() (id ID) {
+	id.Size = r.size
+	h := r.hash.Sum(nil)
+	copy(id.Hash[0:32], h[0:32])
+	return
+}
 
-	_, err = io.Copy(resolver, file)
-	if err != nil {
-		return "", err
-	}
+func Resolve(data []byte) ID {
+	r := NewResolver()
+	b := bytes.NewReader(data)
+	_, _ = io.Copy(r, b)
+	return r.Resolve()
+}
 
-	return resolver.Resolve(), nil
+func ResolveAll(reader io.Reader) ID {
+	r := NewResolver()
+	_, _ = io.Copy(r, reader)
+	return r.Resolve()
 }

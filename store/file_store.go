@@ -1,6 +1,7 @@
 package store
 
 import (
+	_id "github.com/cryptopunkscc/lore/id"
 	"github.com/cryptopunkscc/lore/util"
 	"github.com/minio/minio/pkg/disk"
 	"os"
@@ -11,11 +12,11 @@ var _ Store = &FileStore{}
 
 type FileStore struct {
 	rootDir      string
-	addedEvent   EventFunc
-	removedEvent EventFunc
+	addedEvent   _id.IDFunc
+	removedEvent _id.IDFunc
 }
 
-func NewFileStore(rootDir string, added EventFunc, removed EventFunc) (*FileStore, error) {
+func NewFileStore(rootDir string, added _id.IDFunc, removed _id.IDFunc) (*FileStore, error) {
 	store := &FileStore{
 		addedEvent:   added,
 		removedEvent: removed,
@@ -32,35 +33,41 @@ func NewFileStore(rootDir string, added EventFunc, removed EventFunc) (*FileStor
 	return store, nil
 }
 
-func (f FileStore) Free() (int64, error) {
+func (f FileStore) Free() (uint64, error) {
 	info, err := disk.GetInfo(f.rootDir)
 	if err != nil {
 		return 0, err
 	}
 
-	return int64(info.Free), nil
+	return info.Free, nil
 }
 
-func (f FileStore) Read(id string) (ReadSeekCloser, error) {
-	path := filepath.Join(f.rootDir, id)
+func (f FileStore) Read(id _id.ID) (ReadSeekCloser, error) {
+	path := filepath.Join(f.rootDir, id.String())
 
 	return os.OpenFile(path, os.O_RDONLY, 0)
 }
 
-func (f FileStore) List() ([]string, error) {
-	matches, err := filepath.Glob(filepath.Join(f.rootDir, "id*"))
+func (f FileStore) List() (_id.Set, error) {
+	files, err := filepath.Glob(filepath.Join(f.rootDir, "id1*"))
 	if err != nil {
 		return nil, err
 	}
-	list := make([]string, 0)
-	for _, m := range matches {
-		list = append(list, filepath.Base(m))
+
+	set := _id.NewSet()
+	for _, file := range files {
+		id, err := _id.Parse(filepath.Base(file))
+		if err != nil {
+			continue
+		}
+
+		set.Add(id)
 	}
-	return list, nil
+	return set, nil
 }
 
 func (f FileStore) Create() (Writer, error) {
-	writer, err := NewFileWriter(f.rootDir, nil)
+	writer, err := NewFileWriter(f.rootDir)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +78,7 @@ func (f FileStore) Create() (Writer, error) {
 	}
 
 	// Wrap the writer into a callback
-	return NewWrappedWriter(writer, func(id string, err error) error {
+	return NewWrappedWriter(writer, func(id _id.ID, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -80,8 +87,8 @@ func (f FileStore) Create() (Writer, error) {
 	}), nil
 }
 
-func (f FileStore) Delete(id string) error {
-	path := filepath.Join(f.rootDir, id)
+func (f FileStore) Delete(id _id.ID) error {
+	path := filepath.Join(f.rootDir, id.String())
 
 	err := os.Remove(path)
 	if err != nil {

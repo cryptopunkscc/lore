@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cryptopunkscc/lore/httpfile"
+	_id "github.com/cryptopunkscc/lore/id"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -21,13 +22,13 @@ func NewHTTPStore(baseUrl string) *HTTPStore {
 	return &HTTPStore{baseUrl: baseUrl}
 }
 
-func (s HTTPStore) Read(id string) (ReadSeekCloser, error) {
-	url := s.url(id)
+func (s HTTPStore) Read(id _id.ID) (ReadSeekCloser, error) {
+	url := s.url(id.String())
 
 	return httpfile.Open(url)
 }
 
-func (s HTTPStore) List() ([]string, error) {
+func (s HTTPStore) List() (_id.Set, error) {
 	res, err := http.Get(s.url(""))
 	if err != nil {
 		return nil, err
@@ -47,10 +48,19 @@ func (s HTTPStore) List() ([]string, error) {
 		return nil, err
 	}
 
-	return list, nil
+	set := _id.NewSet()
+	for _, item := range list {
+		id, err := _id.Parse(item)
+		if err != nil {
+			continue
+		}
+		set.Add(id)
+	}
+
+	return set, nil
 }
 
-func (s HTTPStore) Free() (int64, error) {
+func (s HTTPStore) Free() (uint64, error) {
 	res, err := http.Get(s.url("free"))
 	if err != nil {
 		return 0, err
@@ -64,7 +74,7 @@ func (s HTTPStore) Free() (int64, error) {
 		return 0, err
 	}
 
-	var free int64
+	var free uint64
 	err = json.Unmarshal(body, &free)
 	if err != nil {
 		return 0, err
@@ -77,8 +87,8 @@ func (s HTTPStore) Create() (Writer, error) {
 	return newHttpWriter(s.url(""))
 }
 
-func (s HTTPStore) Delete(id string) error {
-	req, err := http.NewRequest("DELETE", s.url(id), nil)
+func (s HTTPStore) Delete(id _id.ID) error {
+	req, err := http.NewRequest("DELETE", s.url(id.String()), nil)
 	if err != nil {
 		return err
 	}
@@ -111,7 +121,7 @@ type httpWriter struct {
 }
 
 type httpFinalizeResponse struct {
-	id  string
+	id  _id.ID
 	err error
 }
 
@@ -129,7 +139,7 @@ func newHttpWriter(url string) (*httpWriter, error) {
 	return w, nil
 }
 
-func (writer *httpWriter) Finalize() (string, error) {
+func (writer *httpWriter) Finalize() (_id.ID, error) {
 	_ = writer.w.Close()
 	res := <-writer.res
 	return res.id, res.err
@@ -155,16 +165,19 @@ func (writer *httpWriter) Read(data []byte) (int, error) {
 func (writer *httpWriter) execute() {
 	res, err := http.DefaultClient.Do(writer.req)
 	if err != nil {
-		writer.res <- httpFinalizeResponse{"", err}
+		writer.res <- httpFinalizeResponse{_id.ID{}, err}
 		return
 	}
 
-	id, err := ioutil.ReadAll(res.Body)
+	strId, err := ioutil.ReadAll(res.Body)
+
+	id, _ := _id.Parse(string(strId))
+
 	if err != nil {
-		writer.res <- httpFinalizeResponse{"", err}
+		writer.res <- httpFinalizeResponse{_id.ID{}, err}
 		return
 	}
 
-	writer.res <- httpFinalizeResponse{string(id), nil}
+	writer.res <- httpFinalizeResponse{id, nil}
 	return
 }

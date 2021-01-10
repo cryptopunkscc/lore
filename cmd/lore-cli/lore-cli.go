@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	_id "github.com/cryptopunkscc/lore/id"
 	"github.com/cryptopunkscc/lore/store"
 	"io"
 	"log"
@@ -26,7 +27,12 @@ func (app *App) List() {
 	}
 }
 
-func (app *App) Read(id string) {
+func (app *App) Read(idStr string) {
+	id, err := _id.Parse(idStr)
+	if err != nil {
+		log.Fatalln("error parsing argument:", err)
+	}
+
 	file, err := app.store.Read(id)
 	if err != nil {
 		log.Fatalln("api error:", err)
@@ -57,15 +63,25 @@ func (app *App) Create() {
 	fmt.Println(id)
 }
 
-func (app *App) Delete(id string) {
-	err := app.store.Delete(id)
+func (app *App) Delete(idStr string) {
+	id, err := _id.Parse(idStr)
+	if err != nil {
+		log.Fatalln("error parsing argument:", err)
+	}
+
+	err = app.store.Delete(id)
 	if err != nil {
 		log.Fatalln("api error:", err)
 	}
 }
 
 // Play reads a file and plays it locally using ffplay
-func (app *App) Play(id string) {
+func (app *App) Play(idStr string) {
+	id, err := _id.Parse(idStr)
+	if err != nil {
+		log.Fatalln("error parsing argument:", err)
+	}
+
 	stream, err := app.store.Read(id)
 	if err != nil {
 		log.Fatalln("Error playing:", err)

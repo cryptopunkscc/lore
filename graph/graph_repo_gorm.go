@@ -1,6 +1,7 @@
 package graph
 
 import (
+	_id "github.com/cryptopunkscc/lore/id"
 	"gorm.io/gorm"
 )
 
@@ -33,7 +34,7 @@ func (repo *GraphRepoGorm) AddNode(node *Node) error {
 
 	// Save node type
 	err = repo.db.Create(&gormNodeType{
-		ID:      node.ID,
+		ID:      node.ID.String(),
 		Type:    node.Type,
 		SubType: node.SubType,
 	}).Error
@@ -44,8 +45,8 @@ func (repo *GraphRepoGorm) AddNode(node *Node) error {
 	// Save edges
 	for _, r := range node.Edges {
 		err = repo.db.Create(&gormEdge{
-			From: node.ID,
-			To:   r,
+			From: node.ID.String(),
+			To:   r.String(),
 		}).Error
 		if err != nil {
 			return err
@@ -55,10 +56,10 @@ func (repo *GraphRepoGorm) AddNode(node *Node) error {
 	return nil
 }
 
-func (repo *GraphRepoGorm) RemoveNode(id string) error {
+func (repo *GraphRepoGorm) RemoveNode(id _id.ID) error {
 	var err error
 
-	err = repo.db.Delete(&gormNodeType{ID: id}).Error
+	err = repo.db.Delete(&gormNodeType{ID: id.String()}).Error
 	if err != nil {
 		return err
 	}
@@ -71,7 +72,7 @@ func (repo *GraphRepoGorm) RemoveNode(id string) error {
 	return nil
 }
 
-func (repo *GraphRepoGorm) FindNode(id string) (*Node, error) {
+func (repo *GraphRepoGorm) FindNode(id _id.ID) (*Node, error) {
 	var nodeType gormNodeType
 	var node = &Node{}
 
@@ -85,7 +86,7 @@ func (repo *GraphRepoGorm) FindNode(id string) (*Node, error) {
 	node.SubType = nodeType.SubType
 
 	if node.Type == TypeStory {
-		node.Edges = make([]string, 0)
+		node.Edges = make([]_id.ID, 0)
 
 		rows, err := repo.db.Where("id = ?", id).Find(&[]gormEdge{}).Rows()
 		if err != nil {
@@ -99,7 +100,13 @@ func (repo *GraphRepoGorm) FindNode(id string) (*Node, error) {
 			if err != nil {
 				return nil, err
 			}
-			node.Edges = append(node.Edges, i.To)
+
+			toID, err := _id.Parse(i.To)
+			if err != nil {
+				return nil, err
+			}
+
+			node.Edges = append(node.Edges, toID)
 		}
 	}
 
@@ -131,7 +138,7 @@ func (repo *GraphRepoGorm) Objects(typ string) ([]string, error) {
 	return list, nil
 }
 
-func (repo *GraphRepoGorm) Stories(edge string, typ string) ([]string, error) {
+func (repo *GraphRepoGorm) Stories(_ _id.ID, typ string) ([]string, error) {
 	// TODO: Filter also by edge
 	var list = make([]string, 0)
 

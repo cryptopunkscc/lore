@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/cryptopunkscc/lore/comm/server"
 	"github.com/cryptopunkscc/lore/graph"
+	"github.com/cryptopunkscc/lore/id"
 	"github.com/cryptopunkscc/lore/store"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -25,14 +26,14 @@ type Node struct {
 	graph       *graph.Graph
 }
 
-func (node *Node) Added(id string) {
-	_, err := node.graph.Add(id, node.deviceStore)
+func (node *Node) Added(id id.ID) {
+	_, err := node.graph.AddFrom(id, node.deviceStore)
 	if err != nil {
 		fmt.Println(id, "error adding node to graph:", err)
 	}
 }
 
-func (node *Node) Removed(id string) {
+func (node *Node) Removed(id id.ID) {
 	err := node.graph.Remove(id)
 	if err != nil {
 		fmt.Println(id, "error removing node from graph:", err)
@@ -73,14 +74,14 @@ func NewNode(config Config) (*Node, error) {
 	}
 
 	// Set up the index
-	node.graph, err = graph.NewGraph(graphRepo)
+	node.graph, err = graph.NewGraph(graphRepo, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, path := range config.Paths {
-		_ = node.deviceStore.AddLocalDir(path)
-	}
+	//for _, path := range config.FindByID {
+	//	_ = node.deviceStore.AddLocalDir(path)
+	//}
 
 	for _, url := range config.Urls {
 		_ = node.deviceStore.AddNetworkStore(url)

@@ -2,29 +2,39 @@ package graph
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"github.com/cryptopunkscc/lore/id"
 	"github.com/cryptopunkscc/lore/store"
 	"github.com/cryptopunkscc/lore/story"
 	"github.com/cryptopunkscc/lore/util"
 )
 
 type Graph struct {
-	repo GraphRepo
+	repo   GraphRepo
+	reader store.Reader
 }
 
 type Node struct {
-	ID      string
+	ID      id.ID
 	Type    string
 	SubType string
-	Edges   []string
+	Edges   []id.ID
 }
 
-func NewGraph(repo GraphRepo) (*Graph, error) {
-	return &Graph{repo: repo}, nil
+func NewGraph(repo GraphRepo, reader store.Reader) (*Graph, error) {
+	return &Graph{
+		repo:   repo,
+		reader: reader,
+	}, nil
 }
 
-// Add a node to the graph
-func (graph *Graph) Add(nodeId string, reader store.Reader) (*Node, error) {
+func (graph *Graph) Add(nodeId id.ID) (*Node, error) {
+	return graph.AddFrom(nodeId, graph.reader)
+}
+
+// AddFrom adds a node to the graph reading data from the provided store
+func (graph *Graph) AddFrom(nodeId id.ID, reader store.Reader) (*Node, error) {
 	node := &Node{ID: nodeId}
 
 	file, err := reader.Read(nodeId)
@@ -49,7 +59,14 @@ func (graph *Graph) Add(nodeId string, reader store.Reader) (*Node, error) {
 	} else {
 		node.Type = TypeStory
 		node.SubType = header.Type
-		node.Edges = header.Rel
+		node.Edges = make([]id.ID, 0)
+		for _, edge := range header.Rel {
+			e, err := id.Parse(edge)
+			if err != nil {
+				return nil, errors.New("invalid edge id")
+			}
+			node.Edges = append(node.Edges, e)
+		}
 	}
 
 	err = graph.repo.AddNode(node)
@@ -61,12 +78,12 @@ func (graph *Graph) Add(nodeId string, reader store.Reader) (*Node, error) {
 }
 
 // Remove a node from the graph
-func (graph *Graph) Remove(id string) error {
+func (graph *Graph) Remove(id id.ID) error {
 	return graph.repo.RemoveNode(id)
 }
 
 // Get returns info about a node in the graph
-func (graph *Graph) Get(id string) (*Node, error) {
+func (graph *Graph) Get(id id.ID) (*Node, error) {
 	return graph.repo.FindNode(id)
 }
 
@@ -77,6 +94,6 @@ func (graph *Graph) Objects(typ string) ([]string, error) {
 
 // Stories returns a list of stories. If rel is non-zero, the list will be limited to stories that are related to the provided id.
 // If typ is non-zero, results will be limited to the provided type.
-func (graph *Graph) Stories(edge string, typ string) ([]string, error) {
+func (graph *Graph) Stories(edge id.ID, typ string) ([]string, error) {
 	return graph.repo.Stories(edge, typ)
 }

@@ -1,6 +1,9 @@
 package store
 
-import "errors"
+import (
+	"errors"
+	_id "github.com/cryptopunkscc/lore/id"
+)
 
 var _ Group = &SeqGroup{}
 
@@ -33,7 +36,7 @@ func (group *SeqGroup) Remove(store Store) error {
 }
 
 // Read will call Read on every store in the collection and return the result of the first successful call.
-func (group *SeqGroup) Read(id string) (ReadSeekCloser, error) {
+func (group *SeqGroup) Read(id _id.ID) (ReadSeekCloser, error) {
 	for _, s := range group.stores {
 		r, err := s.Read(id)
 		if err == nil {
@@ -44,26 +47,24 @@ func (group *SeqGroup) Read(id string) (ReadSeekCloser, error) {
 }
 
 // List returns a merged list of files from all stores
-func (group *SeqGroup) List() ([]string, error) {
-	res := make([]string, 0)
-	ids := make(map[string]bool)
+func (group *SeqGroup) List() (_id.Set, error) {
+	set := _id.NewSet()
 
 	for _, store := range group.stores {
-		list, err := store.List()
-		if err == nil {
-			for _, i := range list {
-				if _, ok := ids[i]; !ok {
-					res = append(res, i)
-					ids[i] = true
-				}
-			}
+		subset, err := store.List()
+		if err != nil {
+			continue
 		}
+
+		subset.Each(func(id _id.ID) {
+			set.Add(id)
+		})
 	}
 
-	return res, nil
+	return set, nil
 }
 
-func (group *SeqGroup) Free() (int64, error) {
+func (group *SeqGroup) Free() (uint64, error) {
 	return 0, ErrUnsupported
 }
 
@@ -79,6 +80,6 @@ func (group *SeqGroup) Create() (Writer, error) {
 }
 
 // TODO: Delete is not yet supported.
-func (group *SeqGroup) Delete(id string) error {
+func (group *SeqGroup) Delete(_id.ID) error {
 	return ErrUnsupported
 }
