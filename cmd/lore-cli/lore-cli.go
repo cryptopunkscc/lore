@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	_id "github.com/cryptopunkscc/lore/id"
-	"github.com/cryptopunkscc/lore/store"
+	"github.com/cryptopunkscc/lore/store/http"
 	"io"
 	"log"
 	"os"
@@ -13,7 +13,7 @@ import (
 const storeURL = "http://localhost:10768/store"
 
 type App struct {
-	store *store.HTTPStore
+	store *http.HTTPStore
 }
 
 // List show a list of all shared files
@@ -22,9 +22,10 @@ func (app *App) List() {
 	if err != nil {
 		log.Fatalln("api error:", err)
 	}
-	for _, item := range list {
-		fmt.Println(item)
-	}
+
+	list.Each(func(id _id.ID) {
+		fmt.Println(id)
+	})
 }
 
 func (app *App) Read(idStr string) {
@@ -129,7 +130,7 @@ func main() {
 	}
 
 	app := &App{
-		store: store.NewHTTPStore(storeURL),
+		store: http.NewHTTPStore(storeURL),
 	}
 
 	app.Run(os.Args[1:])

@@ -3,7 +3,6 @@ package graph
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"github.com/cryptopunkscc/lore/id"
 	"github.com/cryptopunkscc/lore/store"
 	"github.com/cryptopunkscc/lore/story"
@@ -35,6 +34,10 @@ func (graph *Graph) Add(nodeId id.ID) (*Node, error) {
 
 // AddFrom adds a node to the graph reading data from the provided store
 func (graph *Graph) AddFrom(nodeId id.ID, reader store.Reader) (*Node, error) {
+	if node, _ := graph.Get(nodeId); node != nil {
+		return nil, nil
+	}
+
 	node := &Node{ID: nodeId}
 
 	file, err := reader.Read(nodeId)
@@ -50,7 +53,6 @@ func (graph *Graph) AddFrom(nodeId id.ID, reader store.Reader) (*Node, error) {
 
 	header, err := story.ParseHeaderFromBytes(buf[:n])
 	if err != nil {
-		fmt.Println(err)
 		node.Type = TypeObject
 		node.SubType, err = util.GetContentType(bytes.NewReader(buf))
 		if err != nil {

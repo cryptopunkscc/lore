@@ -56,35 +56,28 @@ func NewNode(config Config) (*Node, error) {
 	// Read the database
 	dbPath := filepath.Join(node.config.GetNodeDir(), dbFileName)
 	node.db, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logger.Error),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error opening database: %w", err)
+	}
+
+	// Set up gorm graph repo
+	graphRepo, err := graph.NewGraphRepoGorm(node.db)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set up the graph
+	node.graph, err = graph.NewGraph(graphRepo, nil)
+	if err != nil {
+		return nil, err
 	}
 
 	// Set up device store
 	node.deviceStore, err = NewDeviceStore(&node.config, node.db, node)
 	if err != nil {
 		return nil, err
-	}
-
-	graphRepo, err := graph.NewGraphRepoGorm(node.db)
-	if err != nil {
-		return nil, err
-	}
-
-	// Set up the index
-	node.graph, err = graph.NewGraph(graphRepo, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	//for _, path := range config.FindByID {
-	//	_ = node.deviceStore.AddLocalDir(path)
-	//}
-
-	for _, url := range config.Urls {
-		_ = node.deviceStore.AddNetworkStore(url)
 	}
 
 	free, err := node.deviceStore.Free()
@@ -99,6 +92,8 @@ func NewNode(config Config) (*Node, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	node.deviceStore.Refresh()
 
 	return node, nil
 }

@@ -1,14 +1,16 @@
-package store
+package file
 
 import (
+	"errors"
 	"github.com/cryptopunkscc/lore/id"
+	"github.com/cryptopunkscc/lore/store"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 )
 
 // Make sure *FileWriter satisfies Writer interface
-var _ Writer = &FileWriter{}
+var _ store.Writer = &FileWriter{}
 
 // FileWriter writes data to a local file and once all data is written, it resolves the ID of the file,
 // renames the file to that ID and returns the ID.
@@ -47,6 +49,8 @@ func (w *FileWriter) Write(data []byte) (int, error) {
 
 // Finalize closes the file, renames it to its resolver and returns the resolver
 func (w *FileWriter) Finalize() (id.ID, error) {
+	var err error
+
 	// Close the temporary file
 	tmpPath := w.tmp.Name()
 	if err := w.tmp.Close(); err != nil {
@@ -56,9 +60,16 @@ func (w *FileWriter) Finalize() (id.ID, error) {
 	// Resolve the resolver of the file
 	fileId := w.resolver.Resolve()
 
-	// Rename temporary file to its id
 	dstPath := filepath.Join(w.dir, fileId.String())
-	err := os.Rename(tmpPath, dstPath)
+
+	_, err = os.Stat(dstPath)
+	if !errors.Is(err, os.ErrNotExist) {
+		_ = w.Discard()
+		return fileId, store.ErrAlreadyExists
+	}
+
+	// Rename temporary file to its id
+	err = os.Rename(tmpPath, dstPath)
 	if err != nil {
 		return id.ID{}, err
 	}

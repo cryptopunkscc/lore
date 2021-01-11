@@ -1,10 +1,12 @@
-package store
+package http
 
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/cryptopunkscc/lore/httpfile"
 	_id "github.com/cryptopunkscc/lore/id"
+	"github.com/cryptopunkscc/lore/store"
+	"github.com/cryptopunkscc/lore/util"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -12,7 +14,7 @@ import (
 	"path/filepath"
 )
 
-var _ Store = &HTTPStore{}
+var _ store.Store = &HTTPStore{}
 
 type HTTPStore struct {
 	baseUrl string
@@ -22,7 +24,7 @@ func NewHTTPStore(baseUrl string) *HTTPStore {
 	return &HTTPStore{baseUrl: baseUrl}
 }
 
-func (s HTTPStore) Read(id _id.ID) (ReadSeekCloser, error) {
+func (s HTTPStore) Read(id _id.ID) (util.ReadSeekCloser, error) {
 	url := s.url(id.String())
 
 	return httpfile.Open(url)
@@ -83,7 +85,7 @@ func (s HTTPStore) Free() (uint64, error) {
 	return free, nil
 }
 
-func (s HTTPStore) Create() (Writer, error) {
+func (s HTTPStore) Create() (store.Writer, error) {
 	return newHttpWriter(s.url(""))
 }
 
@@ -111,7 +113,7 @@ func (s HTTPStore) url(path string) string {
 	return url.String()
 }
 
-var _ Writer = &httpWriter{}
+var _ store.Writer = &httpWriter{}
 
 type httpWriter struct {
 	req *http.Request
@@ -146,7 +148,7 @@ func (writer *httpWriter) Finalize() (_id.ID, error) {
 }
 
 func (writer *httpWriter) Discard() error {
-	return ErrUnsupported
+	return store.ErrUnsupported
 }
 
 func (writer *httpWriter) Write(data []byte) (int, error) {
@@ -166,6 +168,10 @@ func (writer *httpWriter) execute() {
 	res, err := http.DefaultClient.Do(writer.req)
 	if err != nil {
 		writer.res <- httpFinalizeResponse{_id.ID{}, err}
+		return
+	}
+	if res.StatusCode != http.StatusOK {
+		writer.res <- httpFinalizeResponse{_id.ID{}, fmt.Errorf("http status code %d", res.StatusCode)}
 		return
 	}
 

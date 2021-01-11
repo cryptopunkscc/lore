@@ -1,10 +1,13 @@
 package store
 
-import "github.com/cryptopunkscc/lore/id"
+import (
+	"github.com/cryptopunkscc/lore/id"
+	"github.com/cryptopunkscc/lore/util"
+)
 
 // Reader defines methods for reading data from a store
 type Reader interface {
-	Read(id id.ID) (ReadSeekCloser, error)
+	Read(id id.ID) (util.ReadSeekCloser, error)
 	List() (id.Set, error)
 }
 

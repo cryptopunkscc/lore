@@ -57,11 +57,17 @@ func (handler *StoreHandler) HandleRead(req *Request) {
 }
 
 func (handler *StoreHandler) HandleList(req *Request) {
-	list, err := handler.store.List()
+	set, err := handler.store.List()
 	if err != nil {
 		_ = req.ServerError(err.Error())
 		return
 	}
+
+	// Convert to string list
+	var list = make([]string, 0)
+	set.Each(func(id _id.ID) {
+		list = append(list, id.String())
+	})
 
 	_ = req.OK(list)
 }

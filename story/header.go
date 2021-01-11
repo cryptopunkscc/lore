@@ -1,7 +1,9 @@
 package story
 
 import (
+	"errors"
 	"fmt"
+	"github.com/cryptopunkscc/lore/id"
 	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
@@ -32,8 +34,27 @@ func ParseHeaderFromBytes(data []byte) (*Header, error) {
 	if story.Story == nil {
 		return nil, ErrHeaderMissing
 	}
+	err = story.Story.Validate()
+	if err != nil {
+		return nil, fmt.Errorf("invalid header: %w", err)
+	}
 
 	return story.Story, nil
+}
+
+func (header Header) Validate() error {
+	if header.Version != 0 {
+		return errors.New("invalid version")
+	}
+	if header.Type == "" {
+		return errors.New("missing type")
+	}
+	for _, edge := range header.Rel {
+		if _, err := id.Parse(edge); err != nil {
+			return errors.New("invalid edge")
+		}
+	}
+	return nil
 }
 
 // ParseHeaderFromFile tries to parse a story header from file

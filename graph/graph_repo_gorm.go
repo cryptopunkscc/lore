@@ -64,7 +64,7 @@ func (repo *GraphRepoGorm) RemoveNode(id _id.ID) error {
 		return err
 	}
 
-	err = repo.db.Where("'from' = ?", id).Delete(&gormEdge{}).Error
+	err = repo.db.Where("'from' = ?", id.String()).Delete(&gormEdge{}).Error
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func (repo *GraphRepoGorm) FindNode(id _id.ID) (*Node, error) {
 	var node = &Node{}
 
 	// Fetch types
-	err := repo.db.Where("id = ?", id).First(&nodeType).Error
+	err := repo.db.Where("id = ?", id.String()).First(&nodeType).Error
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (repo *GraphRepoGorm) FindNode(id _id.ID) (*Node, error) {
 	if node.Type == TypeStory {
 		node.Edges = make([]_id.ID, 0)
 
-		rows, err := repo.db.Where("id = ?", id).Find(&[]gormEdge{}).Rows()
+		rows, err := repo.db.Where("'from' = ?", id.String()).Find(&[]gormEdge{}).Rows()
 		if err != nil {
 			return nil, err
 		}

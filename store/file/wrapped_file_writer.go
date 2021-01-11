@@ -1,20 +1,23 @@
-package store
+package file
 
-import _id "github.com/cryptopunkscc/lore/id"
+import (
+	_id "github.com/cryptopunkscc/lore/id"
+	"github.com/cryptopunkscc/lore/store"
+)
 
 // Interface check
-var _ Writer = &WrappedWriter{}
+var _ store.Writer = &WrappedWriter{}
 
 type FinalizeFunc func(_id.ID, error) error
 
 // WrappedWriter wraps a Writer to add an additional callback on Finalize() call.
 type WrappedWriter struct {
-	writer     Writer
+	writer     store.Writer
 	onFinalize FinalizeFunc
 }
 
 // NewWrappedWriter makes a new WrappedWriter
-func NewWrappedWriter(writer Writer, onFinalize FinalizeFunc) *WrappedWriter {
+func NewWrappedWriter(writer store.Writer, onFinalize FinalizeFunc) *WrappedWriter {
 	return &WrappedWriter{writer: writer, onFinalize: onFinalize}
 }
 
