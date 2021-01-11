@@ -1,0 +1,21 @@
+syntax = 'proto3';
+
+message Empty {}
+
+message ID {
+  uint64 Size = 1;
+  bytes Hash = 2;
+}
+
+message Set {
+  repeated ID Items = 1;
+}
+
+message Bytes {
+  bytes Data = 1;
+}
+
+service Store {
+  rpc List (Empty) returns (Set);
+  rpc Delete (ID) returns (Empty);
+}
